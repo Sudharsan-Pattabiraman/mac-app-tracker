@@ -312,6 +312,7 @@ A live view of what you're doing, as the first tab:
   - **Today in this app** (since local midnight) and **RAM now**.
 - **Recent card:** today's most recent stretches, newest first: start time, icon, app (or a muted "Idle" row) and duration. It fills the remaining height and scrolls.
 - **Stretch / session rule:** a stretch ends when you **switch to another app** or on an **Idle or Away gap of 2 min or more**. The same rule defines *Sessions* in app detail (5.6).
+  - **Brief visits don't count as a switch.** Less than 30 s in other apps before coming back (a quick ⌘-Tab glance, a system dialog) keeps the stretch going, and the visit gets no Recent row of its own. Its time still counts for that app in every total.
 - **Cost:** reads in-memory tracker state only. No new storage, no schema change, no extra permission.
 
 ### 5.6 App detail (inside the popover)
@@ -427,4 +428,4 @@ None. All design questions were resolved in Phase 3:
 | Paused state | Dashed banner with Resume in the popover; `⏸ 45m` countdown in the menu bar |
 | Empty states | The four designs in 5.3 |
 | Spacing and type | The scales in 5.1 |
-| Session definition | Ends on an app switch or Idle/Away of 2 min or more (5.5) |
+| Session definition | Ends on an app switch (visits under 30 s don't count) or Idle/Away of 2 min or more (5.5) |

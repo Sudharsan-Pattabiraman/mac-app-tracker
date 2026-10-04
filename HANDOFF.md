@@ -11,7 +11,7 @@
 
 ## Status
 
-All milestones are **written**. `TikTikCore` + `TikTikStore` compile and pass **187 checks** on Linux. The macOS app target
+All milestones are **written**. `TikTikCore` + `TikTikStore` compile and pass **197 checks** on Linux. The macOS app target
 (`Sources/TikTik`) has **never been compiled**; it was reviewed by hand and syntax-checked with tree-sitter.
 
 Done in the 2026-10-04 session:

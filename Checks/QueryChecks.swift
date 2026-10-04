@@ -78,6 +78,41 @@ func queryChecks(_ h: inout Harness) {
         h.equal(stretches.first { $0.app == chrome }?.duration, 2_700, "domains don't break a stretch")
     }
 
+    h.group("Aggregator: brief visits") { h in
+        let terminal = AppIdentity(bundleID: "com.apple.Terminal", name: "Terminal")
+        let dialog = AppIdentity(bundleID: "com.apple.UserNotificationCenter", name: "UserNotificationCenter")
+        // The first real-Mac dump: Terminal broken up by two short dialogs, then Terminal again 6 min later.
+        let dump = [
+            active(terminal, at(20, 15, 26), at(20, 15, 36)),
+            active(dialog, at(20, 15, 36), at(20, 15, 40)),
+            active(terminal, at(20, 15, 40), at(20, 15, 40).addingTimeInterval(0.4)),
+            active(dialog, at(20, 15, 40).addingTimeInterval(0.4), at(20, 15, 42)),
+            active(terminal, at(20, 15, 42), at(20, 16, 7)),
+            active(terminal, at(20, 22, 9), at(20, 23, 11)),
+        ]
+        let recent = Aggregator.stretches(dump, gap: 120)
+        h.equal(recent.map { $0.app?.name ?? "Idle" }, ["Terminal", "Terminal"], "dialogs absorbed; 6 min gap splits")
+        h.equal(recent.map(\.start), [at(20, 22, 9), at(20, 15, 26)])
+        h.equal(recent.last.map { Int($0.duration.rounded()) }, 35, "only Terminal's own time")
+        h.equal(Aggregator.sessions(dump, app: terminal, gap: 120).count, 2)
+
+        // A long visit still splits, and a brief visit to a different app before moving on stays listed.
+        let long = [active(xcode, at(9, 0), at(9, 10)), active(chrome, at(9, 10), at(9, 11)), active(xcode, at(9, 11), at(9, 20))]
+        h.equal(Aggregator.stretches(long, gap: 120).map { $0.app?.name ?? "" }, ["Xcode", "Google Chrome", "Xcode"],
+                "1 min elsewhere is a real switch")
+        h.equal(Aggregator.sessions(long, app: xcode, gap: 120).count, 2)
+        let glance = [active(xcode, at(9, 0), at(9, 10)), active(chrome, at(9, 10), at(9, 10, 20)), active(xcode, at(9, 10, 20), at(9, 20))]
+        h.equal(Aggregator.stretches(glance, gap: 120).map(\.duration), [1_180], "20 s glance absorbed")
+        h.equal(Aggregator.sessions(glance, app: xcode, gap: 120).count, 1)
+        let moveOn = [active(xcode, at(9, 0), at(9, 10)), active(chrome, at(9, 10), at(9, 10, 20)), active(slack, at(9, 10, 20), at(9, 20))]
+        h.equal(Aggregator.stretches(moveOn, gap: 120).map { $0.app?.name ?? "" }, ["Slack", "Google Chrome", "Xcode"],
+                "no return, nothing absorbed")
+        let idleBetween = [active(xcode, at(9, 0), at(9, 10)), active(chrome, at(9, 10), at(9, 10, 20)),
+                           TrackedInterval(start: at(9, 10, 20), end: at(9, 15), state: .idle), active(xcode, at(9, 15), at(9, 20))]
+        h.equal(Aggregator.stretches(idleBetween, gap: 120).map { $0.app?.name ?? "Idle" }, ["Xcode", "Idle", "Google Chrome", "Xcode"],
+                "a long idle still splits")
+    }
+
     h.group("TrackerStore") { h in
         let path = NSTemporaryDirectory() + "tiktik-checks-\(UUID().uuidString).sqlite"
         defer { ["", "-wal", "-shm"].forEach { try? FileManager.default.removeItem(atPath: path + $0) } }

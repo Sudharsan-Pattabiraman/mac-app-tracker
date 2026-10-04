@@ -55,8 +55,9 @@ final class RealUsageProvider: UsageProvider {
 
         let state = engine.open.state ?? .active
         let since: Date
-        if state == .active, engine.stretchApp == app, let stretchStart = engine.stretchStart {
-            since = stretchStart
+        if state == .active, let current = recent.first, current.app == app {
+            // The current stretch, by the same rule as the Recent list (brief visits elsewhere don't reset it).
+            since = current.start
         } else {
             since = engine.open.start
         }

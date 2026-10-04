@@ -78,19 +78,21 @@ public enum Aggregator {
         return 0
     }
 
-    /// Sessions of one app (SPEC 5.5/5.6): active intervals of that app joined while no other app was
-    /// active in between and any gap is shorter than `gap`. Input: active intervals of all apps.
-    public static func sessions(_ intervals: [TrackedInterval], app: AppIdentity, gap: TimeInterval) -> [Session] {
+    /// Sessions of one app (SPEC 5.5/5.6): active intervals of that app joined while any gap is shorter
+    /// than `gap` and less than `brief` of other apps' active time came in between (a quick glance at
+    /// another app doesn't end a session). Input: active intervals of all apps.
+    public static func sessions(_ intervals: [TrackedInterval], app: AppIdentity, gap: TimeInterval,
+                                brief: TimeInterval = 30) -> [Session] {
         let active = intervals.filter { $0.state == .active }.sorted { $0.start < $1.start }
         var sessions: [Session] = []
         var current: Session?
-        var otherAppSinceLast = false
+        var otherAppTime: TimeInterval = 0
         for interval in active {
             guard interval.app == app else {
-                if current != nil { otherAppSinceLast = true }
+                if current != nil { otherAppTime += interval.duration }
                 continue
             }
-            if var session = current, !otherAppSinceLast, interval.start.timeIntervalSince(session.end) < gap {
+            if var session = current, otherAppTime < brief, interval.start.timeIntervalSince(session.end) < gap {
                 session.end = max(session.end, interval.end)
                 session.active += interval.duration
                 current = session
@@ -98,7 +100,7 @@ public enum Aggregator {
                 if let session = current { sessions.append(session) }
                 current = Session(start: interval.start, end: interval.end, active: interval.duration)
             }
-            otherAppSinceLast = false
+            otherAppTime = 0
         }
         if let session = current { sessions.append(session) }
         return sessions
@@ -112,23 +114,25 @@ public enum Aggregator {
     }
 
     /// Recent stretches for the Now tab, newest first: app stretches (same rule as sessions) and
-    /// Idle periods of at least `gap`. Away time is left out.
-    public static func stretches(_ intervals: [TrackedInterval], gap: TimeInterval) -> [Stretch] {
+    /// Idle periods of at least `gap`. Away time is left out. Visits to other apps shorter than `brief`
+    /// between two stretches of the same app are absorbed: the stretch carries on and the visit gets
+    /// no row of its own (its time still counts for that app everywhere else).
+    public static func stretches(_ intervals: [TrackedInterval], gap: TimeInterval,
+                                 brief: TimeInterval = 30) -> [Stretch] {
+        // Pass 1: split on every app switch and on Idle runs of at least `gap`.
         let sorted = intervals.filter { $0.state != .away }.sorted { $0.start < $1.start }
-        var result: [Stretch] = []
-        var appStretch: (app: AppIdentity, start: Date, end: Date, active: TimeInterval)?
+        var raw: [RawStretch] = []
+        var appStretch: RawStretch?
         var idleRun: (start: Date, end: Date)?
 
         func flushIdle() {
             if let run = idleRun, run.end.timeIntervalSince(run.start) >= gap {
-                result.append(Stretch(start: run.start, duration: run.end.timeIntervalSince(run.start), app: nil))
+                raw.append(RawStretch(app: nil, start: run.start, end: run.end, active: run.end.timeIntervalSince(run.start)))
             }
             idleRun = nil
         }
         func flushApp() {
-            if let s = appStretch {
-                result.append(Stretch(start: s.start, duration: s.active, app: s.app))
-            }
+            if let stretch = appStretch { raw.append(stretch) }
             appStretch = nil
         }
 
@@ -144,19 +148,44 @@ public enum Aggregator {
             }
             guard let app = interval.app else { continue }
             let gapLongEnough = idleRun.map { $0.end.timeIntervalSince($0.start) >= gap } ?? false
-            if var s = appStretch, s.app == app, !gapLongEnough, interval.start.timeIntervalSince(s.end) < gap {
-                s.end = max(s.end, interval.end)
-                s.active += interval.duration
-                appStretch = s
+            if var stretch = appStretch, stretch.app == app, !gapLongEnough, interval.start.timeIntervalSince(stretch.end) < gap {
+                stretch.end = max(stretch.end, interval.end)
+                stretch.active += interval.duration
+                appStretch = stretch
                 idleRun = nil
             } else {
                 flushApp()
                 flushIdle()
-                appStretch = (app, interval.start, interval.end, interval.duration)
+                appStretch = RawStretch(app: app, start: interval.start, end: interval.end, active: interval.duration)
             }
         }
         flushApp()
         flushIdle()
-        return result.sorted { $0.start > $1.start }
+
+        // Pass 2: absorb brief visits (A, short B, A → one A stretch).
+        var kept: [RawStretch] = []
+        for stretch in raw.sorted(by: { $0.start < $1.start }) {
+            if let app = stretch.app {
+                var index = kept.count
+                while index > 0, let other = kept[index - 1].app, other != app, kept[index - 1].active < brief {
+                    index -= 1
+                }
+                if index > 0, kept[index - 1].app == app, stretch.start.timeIntervalSince(kept[index - 1].end) < gap {
+                    kept[index - 1].end = max(kept[index - 1].end, stretch.end)
+                    kept[index - 1].active += stretch.active
+                    kept.removeSubrange(index...)
+                    continue
+                }
+            }
+            kept.append(stretch)
+        }
+        return kept.reversed().map { Stretch(start: $0.start, duration: $0.active, app: $0.app) }
+    }
+
+    private struct RawStretch {
+        var app: AppIdentity?
+        var start: Date
+        var end: Date
+        var active: TimeInterval
     }
 }

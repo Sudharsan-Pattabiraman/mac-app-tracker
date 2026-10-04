@@ -8,6 +8,8 @@ public struct UsageQueries: Sendable {
     public let calendar: Calendar
     /// Stretch / session gap (SPEC 5.5).
     public var gap: TimeInterval = 120
+    /// Visits to another app shorter than this don't end a stretch or session (SPEC 5.5).
+    public var briefVisit: TimeInterval = 30
 
     public init(store: TrackerStore, calendar: Calendar) {
         self.store = store
@@ -42,7 +44,7 @@ public struct UsageQueries: Sendable {
         // Sessions need real start/end times, so read the actual Active intervals.
         var active = Aggregator.clip(try store.intervals(overlapping: window, states: [.active]), to: window)
         if let liveActive = live?.clipped(to: window), liveActive.state == .active { active.append(liveActive) }
-        let sessions = Aggregator.sessions(active, app: app, gap: gap)
+        let sessions = Aggregator.sessions(active, app: app, gap: gap, brief: briefVisit)
         let appIntervals = active.filter { $0.app == app }
 
         return AppDetail(
@@ -67,7 +69,7 @@ public struct UsageQueries: Sendable {
         let today = DateInterval(start: calendar.startOfDay(for: now), end: now)
         var intervals = Aggregator.clip(try store.intervals(overlapping: today), to: today)
         if let live = live?.clipped(to: today) { intervals.append(live) }
-        return Aggregator.stretches(intervals, gap: gap)
+        return Aggregator.stretches(intervals, gap: gap, brief: briefVisit)
     }
 
     /// Active time since local midnight, overall or for one app.
