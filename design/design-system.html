@@ -1,0 +1,169 @@
+<title>TikTik Design System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one section per token group / component; every specimen is drawn twice, light and dark, from the same token names that Theme.swift will use. */
+:root {
+  --page-bg: #FAFAFA; --page-fg: #18181B; --page-muted: #71717B; --page-border: #E4E4E7;
+  --sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page-bg: #111113; --page-fg: #F4F4F5; --page-muted: #9F9FA9; --page-border: #FFFFFF1F; color-scheme: dark; } }
+:root[data-theme="dark"] { --page-bg: #111113; --page-fg: #F4F4F5; --page-muted: #9F9FA9; --page-border: #FFFFFF1F; color-scheme: dark; }
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--sys); }
+.t-light { --background: #FFFFFF; --foreground: #09090B; --card: #FFFFFF; --primary: #18181B; --primary-foreground: #FAFAFA; --secondary: #F4F4F5; --muted: #F4F4F5; --muted-foreground: #71717B; --accent: #F4F4F5; --border: #E4E4E7; --destructive: #E7000B; --ring: #9F9FA9; --state-active: #18181B; --state-idle: #8D8D8F; --state-away: #DADADB; --shot: #F1F1F2; }
+.t-dark { --background: #09090B; --foreground: #FAFAFA; --card: #18181B; --primary: #E4E4E7; --primary-foreground: #18181B; --secondary: #27272A; --muted: #27272A; --muted-foreground: #9F9FA9; --accent: #27272A; --border: #FFFFFF1A; --destructive: #FF6467; --ring: #71717B; --state-active: #E4E4E7; --state-idle: #606063; --state-away: #38383B; --shot: #000000; }
+/* spacing, radius, type tokens (identical in both modes) */
+.t-light, .t-dark {
+  --s-0-5: 2px; --s-1: 4px; --s-1-5: 6px; --s-2: 8px; --s-2-5: 10px; --s-3: 12px; --s-3-5: 14px; --s-4: 16px; --s-5: 20px; --s-6: 24px;
+  --radius: 10px; --r-sm: 6px; --r-md: 8px; --r-lg: 10px; --r-xl: 14px;
+  --track: color-mix(in srgb, var(--primary) 18%, transparent);
+  font-family: var(--mono); color: var(--foreground);
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 40px 20px 72px; display: grid; gap: 48px; }
+header h1 { font-size: 26px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em; }
+header p { margin: 0; color: var(--page-muted); line-height: 1.55; max-width: 74ch; }
+section { display: grid; gap: 14px; border-top: 1px solid var(--page-border); padding-top: 26px; }
+section > h2 { margin: 0; font-size: 18px; font-weight: 600; }
+section > p { margin: 0; color: var(--page-muted); font-size: 13px; line-height: 1.55; max-width: 80ch; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr)); gap: 16px; }
+.panel { background: var(--shot); border-radius: 16px; padding: var(--s-5); display: grid; gap: var(--s-4); min-width: 0; overflow-x: auto; }
+.panel > .ml { font-family: var(--sys); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.surface { background: var(--background); border: 1px solid var(--border); border-radius: var(--r-xl); padding: var(--s-4); display: grid; gap: var(--s-4); }
+.row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.cap { font-size: 10px; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* color table */
+.ctab { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; font-size: 12px; }
+.ctab i { width: 28px; height: 20px; border-radius: 5px; border: 1px solid var(--border); display: block; }
+.ctab code { font-family: var(--mono); color: var(--muted-foreground); font-size: 11px; }
+
+/* type */
+.type { display: grid; gap: var(--s-3); }
+.ty { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.ty .meta { font-size: 10px; color: var(--muted-foreground); line-height: 1.4; }
+.caption { font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
+.label { font-size: 11px; font-weight: 400; color: var(--muted-foreground); }
+.body-sm { font-size: 12px; font-weight: 400; }
+.body { font-size: 13px; font-weight: 400; }
+.body-strong { font-size: 13px; font-weight: 500; }
+.title { font-size: 14px; font-weight: 600; }
+.heading { font-size: 15px; font-weight: 600; }
+.display { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.hero { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+/* spacing */
+.sp { display: grid; grid-template-columns: 60px 44px minmax(0,1fr); gap: 6px 10px; align-items: center; font-size: 11px; }
+.sp b { display: block; height: 10px; background: var(--primary); border-radius: 2px; }
+.sp span { color: var(--muted-foreground); }
+.rad { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+.rad div { width: 64px; height: 48px; border: 1px solid var(--foreground); display: grid; place-items: end start; padding: 4px 6px; font-size: 10px; box-sizing: border-box; }
+
+/* components */
+.btn { font: inherit; font-size: 12px; font-weight: 500; height: 30px; padding: 0 var(--s-3); border-radius: var(--r-md); border: 1px solid transparent; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn.default { background: var(--primary); color: var(--primary-foreground); }
+.btn.secondary { background: var(--secondary); color: var(--foreground); }
+.btn.outline { background: var(--background); color: var(--foreground); border-color: var(--border); }
+.btn.ghost { background: transparent; color: var(--foreground); }
+.btn.ghost.hover { background: var(--accent); }
+.btn.destructive { background: var(--destructive); color: #FAFAFA; }
+.btn.sm { height: 26px; padding: 0 var(--s-2-5); font-size: 11.5px; }
+.btn.icon { width: 26px; height: 26px; padding: 0; justify-content: center; }
+.btn.focus { box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring); }
+.btn.disabled { opacity: 0.5; }
+.badge { font-size: 11px; font-weight: 500; padding: 2px var(--s-2); border-radius: var(--r-sm); border: 1px solid transparent; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.badge.default { background: var(--primary); color: var(--primary-foreground); }
+.badge.secondary { background: var(--secondary); }
+.badge.outline { border-color: var(--border); }
+.badge.destructive { background: var(--destructive); color: #FAFAFA; }
+.badge i { width: 6px; height: 6px; border-radius: 50%; display: block; }
+.tabs { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--muted); border-radius: var(--r-lg); padding: 3px; gap: 2px; }
+.tabs span { text-align: center; font-size: 11.5px; font-weight: 500; padding: 4px 0; border-radius: var(--r-md); color: var(--muted-foreground); border: 1px solid transparent; }
+.tabs span.on { background: var(--background); color: var(--foreground); border-color: var(--border); box-shadow: 0 1px 2px #0000000F; }
+.tabs .live::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: currentColor; margin-right: 4px; vertical-align: 2px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); }
+.card-h { padding: var(--s-3) var(--s-3-5) 0; display: grid; gap: 2px; }
+.card-h b { font-size: 13px; font-weight: 600; } .card-h small { font-size: 11px; color: var(--muted-foreground); }
+.card-c { padding: var(--s-3) var(--s-3-5); font-size: 12px; }
+.card-f { padding: var(--s-2-5) var(--s-3-5); border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: var(--s-2); }
+.progress { height: 6px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.progress.thin { height: 4px; }
+.sep { height: 1px; background: var(--border); }
+.sep.v { width: 1px; height: 20px; }
+.tooltip { position: relative; display: inline-block; background: var(--background); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 4px var(--s-2); font-size: 11px; box-shadow: 0 2px 8px #00000014; }
+.switch { width: 32px; height: 18px; border-radius: 999px; background: var(--primary); position: relative; display: inline-block; }
+.switch::after { content: ""; position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--background); box-shadow: 0 1px 2px #00000026; }
+.switch.off { background: var(--border); } .switch.off::after { right: auto; left: 2px; }
+.select { display: inline-flex; align-items: center; gap: var(--s-2); height: 28px; border: 1px solid var(--border); border-radius: var(--r-md); padding: 0 var(--s-2) 0 var(--s-2-5); font-size: 12px; background: var(--background); }
+.select::after { content: "⌄"; color: var(--muted-foreground); font-size: 11px; transform: translateY(-2px); }
+.menu { width: 150px; background: var(--background); border: 1px solid var(--border); border-radius: var(--r-md); padding: 4px; box-shadow: 0 4px 16px #0000001F; font-size: 12px; display: grid; }
+.menu span { padding: 5px 8px; border-radius: var(--r-sm); display: flex; justify-content: space-between; }
+.menu span.hl { background: var(--accent); }
+.menu span.ck::after { content: "✓"; color: var(--foreground); }
+.legend { display: grid; gap: 6px; font-size: 12px; }
+.legend div { display: flex; align-items: center; gap: 8px; }
+.legend i { width: 8px; height: 8px; border-radius: 2px; display: block; }
+.legend span { margin-left: auto; font-variant-numeric: tabular-nums; }
+.ax { fill: var(--muted-foreground); font-size: 9px; font-family: var(--mono); }
+.gl { stroke: var(--border); stroke-dasharray: 3 3; }
+.tbl { display: grid; grid-template-columns: 20px minmax(0,1fr) 50px 52px 30px 8px; gap: 4px 8px; align-items: center; font-size: 12px; }
+.tbl.h { font-size: 10px; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.tbl .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; } .tbl .m { color: var(--muted-foreground); } .tbl .hot { font-weight: 600; }
+.tbl .on { color: var(--foreground); }
+.icon { width: 20px; height: 20px; border-radius: var(--r-sm); background: var(--secondary); border: 1px solid var(--border); display: grid; place-items: center; font-size: 9.5px; font-weight: 600; color: var(--muted-foreground); box-sizing: border-box; }
+.tbl .icon, .tbl .chev { grid-row: span 2; } .tbl .progress { grid-column: 2 / 6; } .chev { color: var(--muted-foreground); }
+.note { font-family: var(--sys); font-size: 12px; color: var(--page-muted); line-height: 1.5; }
+.note b { color: var(--page-fg); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>TikTik design system</h1>
+    <p>The tokens and components that <code>Theme.swift</code> and the SwiftUI component views will implement, in light and dark mode. Colors are shadcn v4 zinc, converted exactly from OKLCH to sRGB hex. Every component uses only these tokens. Font: JetBrains Mono throughout, with tabular figures for numbers.</p>
+  </header>
+  <div id="root" style="display:grid;gap:48px"></div>
+</div>
+<script>
+const TOK = {"light": {"background": "#FFFFFF", "foreground": "#09090B", "card": "#FFFFFF", "primary": "#18181B", "primaryForeground": "#FAFAFA", "secondary": "#F4F4F5", "muted": "#F4F4F5", "mutedForeground": "#71717B", "accent": "#F4F4F5", "border": "#E4E4E7", "destructive": "#E7000B", "ring": "#9F9FA9", "stateActive": "#18181B", "stateIdle": "#8D8D8F", "stateAway": "#DADADB"}, "dark": {"background": "#09090B", "foreground": "#FAFAFA", "card": "#18181B", "primary": "#E4E4E7", "primaryForeground": "#18181B", "secondary": "#27272A", "muted": "#27272A", "mutedForeground": "#9F9FA9", "accent": "#27272A", "border": "#FFFFFF1A", "destructive": "#FF6467", "ring": "#71717B", "stateActive": "#E4E4E7", "stateIdle": "#606063", "stateAway": "#38383B"}};
+const ORDER = ["background", "foreground", "card", "primary", "primaryForeground", "secondary", "muted", "mutedForeground", "accent", "border", "destructive", "ring", "stateActive", "stateIdle", "stateAway"];
+const USE = { background: "popover and window surface", foreground: "primary text", card: "card surface", primary: "default button, active tab text, bars, Active state", primaryForeground: "text on primary", secondary: "secondary button, icon tiles, badge", muted: "tab bar track, subtle fills", mutedForeground: "labels, captions, secondary numbers", accent: "hover fill (ghost button, menu item)", border: "1px borders, separators, gridlines", destructive: "Clear all data only", ring: "keyboard focus ring", stateActive: "Active (ring, legend, dots)", stateIdle: "Idle", stateAway: "Away" };
+const kebab = k => k.replace(/[A-Z]/g, c => "-" + c.toLowerCase());
+const both = (fn, cls = "") => `<div class="pair">${["light", "dark"].map(m => `<div class="panel t-${m} ${cls}"><div class="ml">${m}</div>${fn(m)}</div>`).join("")}</div>`;
+const sec = (title, desc, body) => `<section><h2>${title}</h2>${desc ? `<p>${desc}</p>` : ""}${body}</section>`;
+
+const colors = m => `<div class="ctab">${ORDER.map(k => `<i style="background:var(--${kebab(k)})"></i><span>${k}<br><code>${USE[k]}</code></span><code>${TOK[m][k]}</code>`).join("")}</div>`;
+const TYPE = [["caption","10 · 500 · +0.05em · caps","column headers"],["label","11 · 400 · muted","field labels, legends, hints"],["body-sm","12 · 400","table numbers, controls"],["body","13 · 400","default text"],["body-strong","13 · 500","app names, setting names"],["title","14 · 600","popover title"],["heading","15 · 600","detail app name"],["display","17 · 600 · −0.01em","welcome title"],["hero","30 · 600 · −0.02em · tabular","Now timer"]];
+const SAMPLE = { caption: "App · Time · RAM", label: "Idle after 5 min", "body-sm": "2h 14m   2.1 GB   39%", body: "Tracks active, idle and away time.", "body-strong": "Google Chrome", title: "TikTik", heading: "Xcode", display: "Welcome to TikTik", hero: "47m 12s" };
+const type = () => `<div class="type">${TYPE.map(([k, meta, use]) => `<div class="ty"><div class="meta"><b style="color:var(--foreground)">${k}</b><br>${meta}<br>${use}</div><div class="${k}" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${SAMPLE[k]}</div></div>`).join("")}</div>`;
+const SP = [["0.5",2],["1",4],["1.5",6],["2",8],["2.5",10],["3",12],["3.5",14],["4",16],["5",20],["6",24]];
+const SPUSE = { "2": "gap between controls", "3": "card padding (y), stack gap", "3.5": "card padding (x), popover padding", "4": "section gap", "2.5": "row padding", "1": "label↔value", "5": "window padding", "6": "welcome padding" };
+const spacing = () => `<div class="sp">${SP.map(([n, px]) => `<span>space-${n}</span><span>${px}pt</span><span style="display:flex;gap:8px;align-items:center"><b style="width:${px * 4}px"></b>${SPUSE[n] || ""}</span>`).join("")}</div>`;
+const radius = () => `<div class="rad">${[["sm",6,"badges, icon tiles"],["md",8,"buttons, selects, tab pill"],["lg",10,"cards, tab track"],["xl",14,"popover frame"],["full",999,"switch, bars"]].map(([n, r, u]) => `<div style="border-radius:${Math.min(r, 24)}px" title="${u}">${n} ${r === 999 ? "" : r}</div>`).join("")}</div><div class="label" style="font-size:11px;color:var(--muted-foreground)">sm 6 · md 8 · lg 10 (= --radius) · xl 14 · full</div>`;
+const buttons = () => `<div class="row"><span class="btn default">Export…</span><span class="btn secondary">Secondary</span><span class="btn outline">Open…</span><span class="btn ghost">Ghost</span><span class="btn destructive">Clear…</span></div>
+  <div class="row"><span class="btn ghost hover">Ghost · hover</span><span class="btn outline focus">Focused</span><span class="btn default disabled">Disabled</span><span class="btn outline sm">Small</span><span class="btn outline icon">⏸</span><span class="btn outline icon">⚙</span></div>`;
+const badges = () => `<div class="row"><span class="badge default">Default</span><span class="badge secondary">Secondary</span><span class="badge outline">Last 24h</span><span class="badge destructive">Denied</span><span class="badge outline"><i style="background:var(--state-active)"></i>Active</span><span class="badge outline"><i style="background:var(--state-idle)"></i>Idle</span><span class="badge outline"><i style="background:var(--muted-foreground)"></i>Paused</span></div>`;
+const tabs = () => `<div class="tabs"><span class="live">Now</span><span class="on">6h</span><span>12h</span><span>24h</span><span>1W</span><span>1M</span><span>6M</span></div>`;
+const card = () => `<div class="card"><div class="card-h"><b>Card title</b><small>Optional description in label style</small></div><div class="card-c">Content area. Padding space-3 × space-3.5.</div><div class="card-f"><span class="btn ghost sm">Cancel</span><span class="btn default sm">Save</span></div></div>`;
+const progress = () => `<div style="display:grid;gap:10px"><div class="progress"><i style="width:39%"></i></div><div class="progress"><i style="width:9%"></i></div><div class="progress thin"><i style="width:41%"></i></div><div class="label" style="font-size:11px;color:var(--muted-foreground)">6pt track (app rows) · 4pt track (domains) · track = primary at 18%</div></div>`;
+const sepTip = () => `<div class="row" style="gap:14px"><span class="body-sm">Left</span><span class="sep v"></span><span class="body-sm">Right</span></div><div class="sep"></div><div class="row" style="align-items:flex-end;gap:16px"><span class="tooltip">09:00 · 41m</span><span class="tooltip">Chrome · 3.4 GB including 14 helpers</span></div>`;
+const controls = () => `<div class="row" style="gap:16px"><span class="switch"></span><span class="switch off"></span><span class="select">5 min</span><span class="select">6h</span></div><div class="menu"><span>1 min</span><span>2 min</span><span class="hl ck">5 min</span><span>10 min</span><span>30 min</span></div>`;
+function ring() { const v = [[342, "state-active"], [48, "state-idle"], [1050, "state-away"]], T = 1440, r = 34, C = 2 * Math.PI * r; let o = 0;
+  const a = v.map(([m, c]) => { const l = m / T * C; const s = `<circle r="${r}" cx="42" cy="42" fill="none" stroke="var(--${c})" stroke-width="10" stroke-dasharray="${l - 2} ${C}" stroke-dashoffset="${-o}" transform="rotate(-90 42 42)"/>`; o += l; return s; }).join("");
+  return `<div class="card" style="display:grid;grid-template-columns:84px 1fr;gap:14px;align-items:center;padding:12px"><svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">${a}<text x="42" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="var(--foreground)" font-family="JetBrains Mono, monospace">24%</text></svg><div class="legend"><div><i style="background:var(--state-active)"></i>Active<span>5h 42m</span></div><div><i style="background:var(--state-idle)"></i>Idle<span>48m</span></div><div><i style="background:var(--state-away)"></i>Away<span>17h 30m</span></div></div></div>`; }
+function chart() { const vals = [95, 40, 410, 452, 398, 512, 382], W = 324, H = 84, pl = 30, bw = (W - pl) / 7, y = v => H - 14 - v / 600 * (H - 20);
+  let g = [0, 300, 600].map(v => `<line class="gl" x1="${pl}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="0" y="${y(v) + 3}">${v ? v / 60 + "h" : 0}</text>`).join("");
+  g += vals.map((v, i) => `<rect x="${pl + i * bw + 1}" y="${y(v)}" width="${bw - 2}" height="${y(0) - y(v)}" rx="3" fill="var(--primary)"/>`).join("") + ["Sat","Sun","Mon","Tue","Wed","Thu","Fri"].map((d, i) => `<text class="ax" x="${pl + i * bw + bw / 2}" y="${H - 2}" text-anchor="middle">${d}</text>`).join("");
+  return `<div class="card" style="padding:10px 12px 8px;display:grid;gap:6px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted-foreground)"><span>Active</span><span>per day</span></div><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible" role="img" aria-label="Example bar chart">${g}</svg></div>`; }
+const table = () => `<div class="card" style="padding:8px 12px"><div class="tbl h"><span></span><span>App</span><span class="n on">Time ↓</span><span class="n">RAM</span><span class="n">%</span><span></span></div>${[["Xc","Xcode","2h 14m","2.1 GB",39,1],["Sl","Slack","48m","612 MB",14,0],["Fi","Figma","31m","—",9,0]].map(([i,n,t,r,p,h]) => `<div class="tbl" style="padding:10px 0;border-top:1px solid var(--border)"><span class="icon">${i}</span><span style="font-weight:500">${n}</span><span class="n">${t}</span><span class="n ${h ? "hot" : "m"}">${r}</span><span class="n m">${p}%</span><span class="chev">›</span><span class="progress"><i style="width:${p}%"></i></span></div>`).join("")}</div>`;
+
+document.getElementById("root").innerHTML = [
+  sec("Color tokens", "shadcn v4 zinc, monochrome. The three state tones are opaque mixes of primary toward the background. <b>Proposed change:</b> dark-mode Away is raised from 14% to 26% (#212124 → #38383B), because at 14% it was nearly invisible on dark cards.", both(colors)),
+  sec("Typography", "JetBrains Mono, bundled. Nine roles; sizes in points. Numbers always use tabular figures so columns line up.", both(type)),
+  sec("Spacing and radius", "A 4pt-based scale (shadcn/Tailwind steps). Radius derives from --radius = 10pt.", both(m => spacing() + radius())),
+  sec("Button", "Variants: default, secondary, outline, ghost, destructive. Sizes: default 30pt, sm 26pt, icon 26×26. States: hover (accent fill), focus (2pt ring with offset), disabled (50% opacity).", both(buttons)),
+  sec("Badge and Tabs", "Badges: default, secondary, outline, destructive, plus a status dot form. Tabs: segmented control; the selected pill is background with a 1pt border and a faint shadow.", both(m => badges() + tabs())),
+  sec("Card, Progress, Separator, Tooltip", "Card has optional header, content and footer slots. Progress uses a primary bar on an 18% primary track. Tooltips appear after a 0.4 s hover delay.", both(m => card() + progress() + sepTip())),
+  sec("Switch and Select", "Select opens a native-feel menu styled with tokens: highlighted row in accent, checkmark on the current value.", both(controls)),
+  sec("Data display", "Ring, bar chart (muted dashed gridlines, minimal axes, 3pt rounded bar tops), and the App · Time · RAM · % table.", both(m => ring() + chart() + table())),
+].join("");
+</script>

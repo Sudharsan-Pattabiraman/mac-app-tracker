@@ -1,0 +1,142 @@
+<title>Tracker Popover Sizes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one row per base color — label on top, light + dark popover previews side by side, token swatches under each. */
+:root {
+  --page-bg: oklch(0.985 0 0);
+  --page-fg: oklch(0.205 0 0);
+  --page-muted: oklch(0.556 0 0);
+  --page-border: oklch(0.922 0 0);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+}
+:root[data-theme="dark"] { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--font); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 40px 20px 64px; display: grid; gap: 48px; }
+header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; text-wrap: balance; }
+header p { margin: 0; color: var(--page-muted); max-width: 68ch; line-height: 1.55; }
+
+section.base { display: grid; gap: 16px; border-top: 1px solid var(--page-border); padding-top: 28px; }
+.base-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.base-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.base-head .tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--page-muted); border: 1px solid var(--page-border); padding: 2px 8px; border-radius: 999px; }
+.base-head p { margin: 0; color: var(--page-muted); font-size: 13px; flex-basis: 100%; }
+.grid { display: flex; flex-wrap: wrap; gap: 32px 24px; align-items: flex-start; }
+.scroller { overflow-x: auto; max-width: 100%; }
+.sizebox { display: grid; gap: 10px; min-width: 0; }
+.toggle { justify-self: start; display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--page-border); border-radius: 10px; }
+.toggle button { font: inherit; font-size: 13px; padding: 5px 14px; border-radius: 7px; border: 0; background: transparent; color: var(--page-muted); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--page-fg); color: var(--page-bg); }
+.toggle button:focus-visible { outline: 2px solid var(--page-muted); outline-offset: 2px; }
+.rec { color: var(--page-fg); border-color: var(--page-fg) !important; }
+.mode { display: grid; gap: 10px; min-width: 0; }
+.mode-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--page-muted); }
+
+/* ---- the mock popover, driven only by shadcn tokens ---- */
+.pop {
+  background: var(--background); color: var(--foreground);
+  border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px);
+  padding: 14px; display: grid; gap: 12px; font-size: 13px;
+}
+.pop-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pop-title { font-weight: 600; font-size: 14px; }
+.badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: calc(var(--radius) - 4px); background: var(--secondary); color: var(--foreground); border: 1px solid transparent; }
+.badge.outline { background: transparent; border-color: var(--border); }
+.tabs { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--muted); border-radius: var(--radius); padding: 3px; gap: 2px; }
+.tabs span { text-align: center; font-size: 12px; font-weight: 500; padding: 4px 0; border-radius: calc(var(--radius) - 2px); color: var(--muted-foreground); }
+.tabs span.on { background: var(--background); color: var(--foreground); box-shadow: 0 1px 2px oklch(0 0 0 / 0.08); border: 1px solid var(--border); padding: 3px 0; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); }
+.stats div { padding: 10px 12px; display: grid; gap: 2px; }
+.stats div + div { border-left: 1px solid var(--border); }
+.stats small { color: var(--muted-foreground); font-size: 11px; }
+.stats b { font-family: var(--num); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.apps { padding: 4px 12px; }
+.app { display: grid; grid-template-columns: 20px 1fr auto; gap: 4px 10px; align-items: center; padding: 8px 0; }
+.app + .app { border-top: 1px solid var(--border); }
+.icon { width: 20px; height: 20px; border-radius: 5px; background: var(--secondary); border: 1px solid var(--border); display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--muted-foreground); grid-row: span 2; }
+.app-name { font-weight: 500; }
+.app-time { font-variant-numeric: tabular-nums; font-family: var(--num); font-size: 12px; }
+.app-time em { font-style: normal; color: var(--muted-foreground); margin-left: 6px; }
+.bar { grid-column: 2 / 4; height: 6px; border-radius: 999px; background: color-mix(in oklch, var(--primary) 18%, transparent); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.foot .muted { color: var(--muted-foreground); font-size: 12px; }
+.btns { display: flex; gap: 6px; }
+.btn { font: inherit; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: calc(var(--radius) - 2px); border: 1px solid transparent; }
+.btn.default { background: var(--primary); color: var(--primary-foreground); }
+.btn.outline { background: var(--background); color: var(--foreground); border-color: var(--border); }
+.btn.ghost { background: transparent; color: var(--foreground); }
+.btn.destructive { background: var(--destructive); color: oklch(0.985 0 0); }
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.sw { display: grid; gap: 4px; font-size: 10.5px; color: var(--page-muted); min-width: 0; }
+.sw i { display: block; height: 22px; border-radius: 6px; border: 1px solid var(--page-border); }
+.sw span { overflow-wrap: anywhere; }
+</style>
+<style>
+.pop { font-family: 'JetBrains Mono', ui-monospace, monospace; --num: 'JetBrains Mono', ui-monospace, monospace; grid-template-rows: auto auto auto 1fr auto; box-sizing: border-box; }
+.pop .apps { overflow-y: auto; min-height: 0; }
+.app-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.compact { gap: 8px; padding: 10px; font-size: 12px; }
+.compact .app { padding: 4px 0; gap: 2px 8px; }
+.compact .stats div { padding: 6px 10px; }
+.compact .stats b { font-size: 14px; }
+.compact .bar { height: 4px; }
+.comfortable .app { padding: 10px 0; }
+.dims { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--page-muted); }
+</style>
+<div class="wrap">
+  <header>
+    <h1>Popover size and density</h1>
+    <p>Zinc, monochrome, 10px radius and JetBrains Mono, drawn at real size (1 CSS px = 1 macOS point). Each popover has a fixed 560pt height and scrolls the app list inside it. Compact rows are about 32pt tall; comfortable rows are about 44pt. Notice how many apps fit before scrolling, and where long names start to truncate.</p>
+  </header>
+  <div class="toggle" role="group" aria-label="Preview theme">
+    <button id="t-light" aria-pressed="true">Light</button><button id="t-dark" aria-pressed="false">Dark</button>
+  </div>
+  <div id="list" style="display:grid;gap:40px"></div>
+</div>
+<script>
+const Z = {
+  light: { background:"oklch(1 0 0)", foreground:"oklch(0.141 0.005 285.823)", card:"oklch(1 0 0)", primary:"oklch(0.21 0.006 285.885)", "primary-foreground":"oklch(0.985 0 0)", secondary:"oklch(0.967 0.001 286.375)", muted:"oklch(0.967 0.001 286.375)", "muted-foreground":"oklch(0.552 0.016 285.938)", border:"oklch(0.92 0.004 286.32)" },
+  dark:  { background:"oklch(0.141 0.005 285.823)", foreground:"oklch(0.985 0 0)", card:"oklch(0.21 0.006 285.885)", primary:"oklch(0.92 0.004 286.32)", "primary-foreground":"oklch(0.21 0.006 285.885)", secondary:"oklch(0.274 0.006 286.033)", muted:"oklch(0.274 0.006 286.033)", "muted-foreground":"oklch(0.705 0.015 286.067)", border:"oklch(1 0 0 / 10%)" }
+};
+const APPS = [["Xc","Xcode","2h 14m",134],["Sa","Safari","1h 32m",92],["Sl","Slack","48m",48],["Fi","Figma","31m",31],["Te","Terminal","27m",27],["Vs","Visual Studio Code","22m",22],["Mu","Music","18m",18],["Ma","Mail","12m",12],["Mi","Microsoft Teams (work or school)","9m",9],["No","Notes","6m",6],["Fi","Finder","4m",4],["Sy","System Settings","2m",2],["Pr","Preview","1m",1]];
+const TOTAL = APPS.reduce((a, x) => a + x[3], 0);
+const WIDTHS = [[340, "Narrow"], [380, "Medium (recommended)"], [420, "Wide"]];
+const DENS = [["compact", "Compact · about 32pt rows"], ["comfortable", "Comfortable · about 44pt rows"]];
+function pop(t, w, dens) {
+  const vars = Object.entries(t).map(([k,v]) => `--${k}:${v}`).join(";");
+  const apps = APPS.map(([ic,n,d,m]) => `<div class="app"><span class="icon" style="border-radius:6px">${ic}</span><span class="app-name">${n}</span><span class="app-time">${d}<em>${Math.round(m/TOTAL*100)}%</em></span><span class="bar"><i style="width:${m/134*100}%"></i></span></div>`).join("");
+  return `<div class="sizebox"><div class="dims">${w} × 560 · ${dens}</div><div class="scroller">
+    <div class="pop ${dens}" style="${vars};--radius:10px;border-radius:14px;width:${w}px;height:560px">
+      <div class="pop-top"><span class="pop-title">Screen time</span><span class="badge outline" style="border-radius:6px">Last 24h</span></div>
+      <div class="tabs"><span>6h</span><span>12h</span><span class="on">24h</span><span>1W</span><span>1M</span><span>6M</span></div>
+      <div class="card stats"><div><small>Active</small><b>5h 42m</b></div><div><small>Idle</small><b>48m</b></div><div><small>Away</small><b>9h 10m</b></div></div>
+      <div class="card apps">${apps}</div>
+      <div class="foot"><span class="muted">Updated now</span><div class="btns"><button class="btn outline">Settings</button></div></div>
+    </div></div></div>`;
+}
+function render(mode) {
+  const t = Z[mode];
+  document.getElementById("list").innerHTML = DENS.map(([d, label]) => `
+    <section class="base"><div class="base-head"><h2>${label}</h2></div>
+    <div class="grid">${WIDTHS.map(([w]) => pop(t, w, d)).join("")}</div></section>`).join("");
+}
+function setMode(m) {
+  document.getElementById("t-light").setAttribute("aria-pressed", m === "light");
+  document.getElementById("t-dark").setAttribute("aria-pressed", m === "dark");
+  render(m);
+  try { localStorage.setItem("size-mode", m); } catch (e) {}
+}
+document.getElementById("t-light").onclick = () => setMode("light");
+document.getElementById("t-dark").onclick = () => setMode("dark");
+let start = "light";
+try { start = localStorage.getItem("size-mode") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); } catch (e) {}
+setMode(start);
+</script>

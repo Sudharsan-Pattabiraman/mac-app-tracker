@@ -1,0 +1,59 @@
+<title>Tracker Menu Bar Item</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one row per option; each shows a light and a dark macOS menu bar strip with the item highlighted among neighbours. */
+:root {
+  --page-bg: oklch(0.985 0 0); --page-fg: oklch(0.205 0 0); --page-muted: oklch(0.556 0 0); --page-border: oklch(0.922 0 0);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; } }
+:root[data-theme="dark"] { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--font); }
+.wrap { max-width: 980px; margin: 0 auto; padding: 40px 20px 64px; display: grid; gap: 36px; }
+h1 { font-size: 24px; font-weight: 600; margin: 0 0 6px; }
+header p { margin: 0; color: var(--page-muted); line-height: 1.55; max-width: 68ch; }
+.opt { display: grid; gap: 12px; border-top: 1px solid var(--page-border); padding-top: 24px; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.head .tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid var(--page-fg); padding: 2px 8px; border-radius: 999px; }
+.head p { margin: 0; flex-basis: 100%; color: var(--page-muted); font-size: 13px; line-height: 1.5; }
+.bars { display: grid; gap: 8px; }
+.scroller { overflow-x: auto; max-width: 100%; }
+.mb { --mb-bg: oklch(0.93 0.004 286 / 0.92); --mb-fg: oklch(0.15 0 0); --mb-hi: oklch(0 0 0 / 0.1);
+  width: 560px; height: 26px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; padding: 0 10px;
+  background: var(--mb-bg); color: var(--mb-fg); border-radius: 8px; font-size: 13px; font-family: var(--font); }
+.mb.dark { --mb-bg: oklch(0.24 0.004 286 / 0.95); --mb-fg: oklch(0.96 0 0); --mb-hi: oklch(1 0 0 / 0.16); }
+.mb .it { height: 22px; display: inline-flex; align-items: center; gap: 5px; padding: 0 7px; border-radius: 5px; white-space: nowrap; }
+.mb .me { background: var(--mb-hi); }
+.mb svg { display: block; }
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-variant-numeric: tabular-nums; }
+.sys { opacity: 0.9; }
+.note { font-size: 11px; color: var(--page-muted); }
+</style>
+<div class="wrap">
+  <header>
+    <h1>Menu bar item</h1>
+    <p>Six options for what the tracker shows in the macOS menu bar, drawn among typical neighbours (Wi-Fi, battery, clock) in both menu bar appearances. The item is highlighted the way macOS shows it while its popover is open. Text updates at most once a minute, so it costs nothing measurable.</p>
+  </header>
+  <div id="list" style="display:grid;gap:36px"></div>
+</div>
+<script>
+const hourglass = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h8M4 14h8M5 2c0 3.2 6 3.8 6 6s-6 2.8-6 6M11 2c0 3.2-6 3.8-6 6s6 2.8 6 6"/></svg>`;
+const ring = (p) => { const r = 6, C = 2*Math.PI*r; return `<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="${r}" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="2"/><circle cx="8" cy="8" r="${r}" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="${p*C} ${C}" transform="rotate(-90 8 8)" stroke-linecap="round"/></svg>`; };
+const dot = (o) => `<svg width="7" height="7" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="3.5" fill="currentColor" fill-opacity="${o}"/></svg>`;
+const wifi = `<svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><path d="M8 11.5 5.6 8.9a3.4 3.4 0 0 1 4.8 0zM3.7 7a6.1 6.1 0 0 1 8.6 0l1.3-1.3a8 8 0 0 0-11.2 0zM.9 4.2a10 10 0 0 1 14.2 0L16 3.3A11.3 11.3 0 0 0 0 3.3z"/></svg>`;
+const batt = `<svg width="24" height="12" viewBox="0 0 24 12" aria-hidden="true"><rect x="0.5" y="0.5" width="20" height="11" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.5"/><rect x="2" y="2" width="13" height="8" rx="1.5" fill="currentColor"/><rect x="21.5" y="4" width="1.5" height="4" rx="0.7" fill="currentColor" fill-opacity="0.5"/></svg>`;
+const OPTS = [
+  ["A", "Icon + today's active time", "An hourglass glyph and active time since midnight. Glanceable, and it doubles as a nudge. About 70pt wide.", `${hourglass}<span class="mono">5h 42m</span>`, true],
+  ["B", "Icon only", "The narrowest option (about 22pt). Nothing to read at a glance; you have to open the popover.", hourglass],
+  ["C", "Text only", "Just the time, no glyph. Compact, but it reads like an anonymous number among other menu bar text.", `<span class="mono">5h 42m</span>`],
+  ["D", "Progress ring", "A small ring that fills toward a daily active-time goal (would add a 'daily goal' setting, e.g. 8h). Glanceable without text.", ring(0.71)],
+  ["E", "Ring + time", "D with the time beside it. The most informative, and the widest (about 75pt).", `${ring(0.71)}<span class="mono">5h 42m</span>`],
+  ["F", "Time + state dot", "The time with a dot showing the current state: solid while Active, faded while Idle. Tells you the tracker currently sees you as idle.", `<span class="mono">5h 42m</span>${dot(1)}`, false, `<span class="mono">5h 42m</span>${dot(0.35)}`],
+];
+const strip = (content, dark) => `<div class="mb${dark ? " dark" : ""}"><span class="it sys">${wifi}</span><span class="it sys">${batt}</span><span class="it me">${content}</span><span class="it sys">Sat Oct 3</span><span class="it sys">14:02</span></div>`;
+document.getElementById("list").innerHTML = OPTS.map(([id, name, note, c, rec, alt]) => `
+  <section class="opt"><div class="head"><h2>${id} · ${name}</h2>${rec ? '<span class="tag">recommended</span>' : ""}<p>${note}</p></div>
+  <div class="bars"><div class="scroller">${strip(c, false)}</div><div class="scroller">${strip(c, true)}</div>
+  ${alt ? `<div class="note">While idle:</div><div class="scroller">${strip(alt, false)}</div>` : ""}</div></section>`).join("");
+</script>

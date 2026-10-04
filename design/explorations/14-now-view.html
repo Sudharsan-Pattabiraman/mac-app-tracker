@@ -1,0 +1,329 @@
+<title>TikTik Now View</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one section per screen; each shows the light and dark renderings side by side at real size (1 CSS px = 1 pt). */
+:root {
+  --page-bg: oklch(0.985 0 0); --page-fg: oklch(0.205 0 0); --page-muted: oklch(0.556 0 0); --page-border: oklch(0.922 0 0);
+  --sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; } }
+:root[data-theme="dark"] { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--sys); }
+
+/* ---- TikTik theme tokens (zinc v4, monochrome, radius 10) ---- */
+.t-light { --background: oklch(1 0 0); --foreground: oklch(0.141 0.005 285.823); --card: oklch(1 0 0); --primary: oklch(0.21 0.006 285.885); --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.967 0.001 286.375); --muted: oklch(0.967 0.001 286.375); --muted-foreground: oklch(0.552 0.016 285.938); --border: oklch(0.92 0.004 286.32);
+  --destructive: oklch(0.577 0.245 27.325); --ring: oklch(0.705 0.015 286.067); --shot-bg: oklch(0.955 0.002 286); }
+.t-dark { --background: oklch(0.141 0.005 285.823); --foreground: oklch(0.985 0 0); --card: oklch(0.21 0.006 285.885); --primary: oklch(0.92 0.004 286.32); --primary-foreground: oklch(0.21 0.006 285.885);
+  --secondary: oklch(0.274 0.006 286.033); --muted: oklch(0.274 0.006 286.033); --muted-foreground: oklch(0.705 0.015 286.067); --border: oklch(1 0 0 / 10%);
+  --destructive: oklch(0.704 0.191 22.216); --ring: oklch(0.552 0.016 285.938); --shot-bg: oklch(0.1 0.004 286); }
+.t-light, .t-dark { --radius: 10px; --active: var(--primary); --idle: color-mix(in oklch, var(--primary) 45%, var(--background)); --away: color-mix(in oklch, var(--primary) 14%, var(--background)); }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 40px 20px 64px; display: grid; gap: 44px; }
+header h1 { font-size: 26px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em; }
+header p { margin: 0; color: var(--page-muted); line-height: 1.55; max-width: 72ch; }
+section.screen { display: grid; gap: 14px; border-top: 1px solid var(--page-border); padding-top: 26px; }
+.sh { display: grid; gap: 4px; }
+.sh h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.sh p { margin: 0; color: var(--page-muted); font-size: 13px; line-height: 1.5; max-width: 80ch; }
+.pair { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.scroller { overflow-x: auto; max-width: 100%; }
+.shot { padding: 20px; background: var(--shot-bg); border-radius: 16px; display: inline-flex; gap: 20px; align-items: flex-start; }
+
+/* ---- popover ---- */
+.pop { width: 380px; height: 560px; box-sizing: border-box; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px; display: flex; flex-direction: column; gap: 12px; font-family: var(--mono); font-size: 12.5px; overflow: hidden; }
+.pop.auto { height: auto; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex: none; }
+.ttl { font-weight: 600; font-size: 14px; }
+.badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: calc(var(--radius) - 4px); border: 1px solid var(--border); white-space: nowrap; }
+.tabs { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--muted); border-radius: var(--radius); padding: 3px; gap: 2px; flex: none; }
+.tabs span { text-align: center; font-size: 12px; font-weight: 500; padding: 4px 0; border-radius: calc(var(--radius) - 2px); color: var(--muted-foreground); border: 1px solid transparent; }
+.tabs span.on { background: var(--background); color: var(--foreground); border-color: var(--border); box-shadow: 0 1px 2px oklch(0 0 0 / 0.06); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); flex: none; }
+.ringcard { display: grid; grid-template-columns: 84px 1fr; gap: 14px; align-items: center; padding: 12px; }
+.ringlist { display: grid; gap: 6px; font-size: 12px; }
+.ringlist div { display: flex; align-items: center; gap: 8px; }
+.ringlist .v { margin-left: auto; font-variant-numeric: tabular-nums; }
+.dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: var(--muted-foreground); padding: 0 2px; flex: none; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend b { color: var(--foreground); font-weight: 500; }
+.chart { padding: 10px 12px 8px; display: grid; gap: 6px; position: relative; }
+.ctitle { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-foreground); }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.gl { stroke: var(--border); stroke-dasharray: 3 3; }
+.ax { fill: var(--muted-foreground); font-size: 9px; font-family: var(--mono); }
+.bar-m { fill: var(--primary); }
+.chart g:hover .bar-m { fill: color-mix(in oklch, var(--primary) 70%, var(--background)); }
+.hit { fill: transparent; }
+.tip { position: absolute; pointer-events: none; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 11px; white-space: nowrap; box-shadow: 0 2px 8px oklch(0 0 0 / 0.08); transform: translate(-50%, -110%); font-family: var(--mono); }
+
+/* app list: App · Time · RAM · % */
+.list { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; padding: 0 12px; }
+.list .rows { overflow-y: auto; min-height: 0; }
+.cols { display: grid; grid-template-columns: 20px minmax(0,1fr) 50px 52px 30px 8px; gap: 4px 8px; align-items: center; }
+.cols.h { font-size: 10px; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 0 6px; border-bottom: 1px solid var(--border); flex: none; }
+.cols.h .on { color: var(--foreground); }
+.cols.r { padding: 10px 0; } .cols.r + .cols.r { border-top: 1px solid var(--border); }
+.n { text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; white-space: nowrap; }
+.n.m { color: var(--muted-foreground); } .n.hot { color: var(--foreground); font-weight: 600; }
+.cols.h .n { font-size: 10px; }
+.nm { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.icon { width: 20px; height: 20px; border-radius: 6px; background: var(--secondary); border: 1px solid var(--border); display: grid; place-items: center; font-size: 9.5px; font-weight: 600; color: var(--muted-foreground); box-sizing: border-box; }
+.cols.r .icon, .cols.r .chev { grid-row: span 2; }
+.chev { color: var(--muted-foreground); font-size: 12px; }
+.bar { grid-column: 2 / 6; height: 6px; border-radius: 999px; background: color-mix(in oklch, var(--primary) 18%, transparent); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; font-size: 11px; color: var(--muted-foreground); }
+.iconbtn { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: calc(var(--radius) - 2px); color: var(--foreground); border: 1px solid transparent; }
+.iconbtn.outline { border-color: var(--border); }
+
+/* detail */
+.back { font: inherit; font-size: 12px; background: transparent; border: 0; color: var(--foreground); padding: 0; }
+.dhead { display: flex; align-items: center; gap: 10px; flex: none; }
+.dhead .icon { width: 32px; height: 32px; font-size: 12px; border-radius: 8px; }
+.dhead .t { display: grid; gap: 2px; } .dhead b { font-size: 15px; } .dhead small { color: var(--muted-foreground); font-size: 11px; }
+.kv { display: grid; grid-template-columns: 1fr 1fr; }
+.kv div { padding: 8px 12px; display: grid; gap: 2px; }
+.kv div:nth-child(2n) { border-left: 1px solid var(--border); }
+.kv div:nth-child(n+3) { border-top: 1px solid var(--border); }
+.kv small { color: var(--muted-foreground); font-size: 11px; } .kv b { font-weight: 500; }
+.drows { padding: 0 12px; }
+.drow { display: grid; grid-template-columns: minmax(0,1fr) auto 34px; gap: 4px 10px; align-items: center; padding: 8px 0; }
+.drow + .drow { border-top: 1px solid var(--border); }
+.drow .bar { grid-column: 1 / 4; height: 4px; }
+
+/* settings + welcome */
+.scroll { overflow-y: auto; display: grid; gap: 14px; align-content: start; min-height: 0; flex: 1 1 auto; }
+.grp { display: grid; gap: 6px; } .glabel { font-size: 11px; color: var(--muted-foreground); padding-left: 2px; }
+.set { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; align-items: center; padding: 11px 14px; }
+.set + .set { border-top: 1px solid var(--border); }
+.set b { font-weight: 500; } .set small { color: var(--muted-foreground); font-size: 11px; line-height: 1.45; grid-column: 1; }
+.set > :last-child { grid-row: 1 / span 2; grid-column: 2; }
+.switch { width: 32px; height: 18px; border-radius: 999px; background: var(--primary); position: relative; }
+.switch::after { content: ""; position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--background); }
+.switch.off { background: var(--border); } .switch.off::after { right: auto; left: 2px; }
+.select { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); padding: 4px 8px 4px 10px; font-size: 12px; white-space: nowrap; }
+.select::after { content: "⌄"; color: var(--muted-foreground); font-size: 11px; transform: translateY(-2px); }
+.btn { font: inherit; font-size: 12px; font-weight: 500; padding: 5px 11px; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--background); color: var(--foreground); white-space: nowrap; }
+.btn.primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.btn.destructive { background: var(--destructive); color: oklch(0.985 0 0); border-color: transparent; }
+.wwin { width: 520px; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: 12px; font-family: var(--mono); font-size: 12.5px; overflow: hidden; }
+.wtb { height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; } .wtb i { width: 12px; height: 12px; border-radius: 50%; background: var(--border); }
+.wbody { padding: 4px 24px 22px; display: grid; gap: 18px; }
+.wtitle { display: grid; gap: 4px; } .wtitle b { font-size: 17px; } .wtitle span { color: var(--muted-foreground); line-height: 1.5; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; display: grid; gap: 8px; }
+.tile.on { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.tile .prev { height: 24px; border-radius: 6px; background: var(--muted); display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11.5px; }
+.tile .tn { font-size: 11px; display: flex; justify-content: space-between; } .tile .tn em { font-style: normal; color: var(--muted-foreground); }
+.wfoot { display: flex; justify-content: flex-end; }
+
+/* menu bar */
+.mbs { display: grid; gap: 10px; }
+.mbrow { display: grid; grid-template-columns: 150px auto; gap: 12px; align-items: center; font-size: 12px; }
+.mbrow span.l { color: var(--page-muted); }
+.mb { --mb-bg: oklch(0.93 0.004 286); --mb-fg: oklch(0.15 0 0); --mb-hi: oklch(0 0 0 / 0.1); width: 400px; height: 26px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; padding: 0 10px; background: var(--mb-bg); color: var(--mb-fg); border-radius: 8px; font-size: 13px; font-family: var(--sys); box-sizing: border-box; }
+.t-dark .mb { --mb-bg: oklch(0.24 0.004 286); --mb-fg: oklch(0.96 0 0); --mb-hi: oklch(1 0 0 / 0.16); }
+.mb .it { height: 22px; display: inline-flex; align-items: center; gap: 5px; padding: 0 7px; border-radius: 5px; white-space: nowrap; }
+.mb .me { background: var(--mb-hi); }
+.mb .mono { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.tabs.seven { grid-template-columns: repeat(7, 1fr); }
+.tabs.seven span { font-size: 11.5px; }
+.tabs .live { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.tabs .live::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.nowcard { padding: 14px; display: grid; gap: 12px; }
+.nowtop { display: flex; align-items: center; gap: 12px; }
+.nowtop .icon { width: 40px; height: 40px; font-size: 13px; border-radius: 10px; }
+.nowtop .t { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.nowtop .t b { font-size: 15px; }
+.nowtop .t small { color: var(--muted-foreground); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.state { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); white-space: nowrap; }
+.state i { width: 6px; height: 6px; border-radius: 50%; background: var(--active); display: block; }
+.state.idle i { background: var(--idle); }
+.timer { display: flex; align-items: baseline; gap: 8px; }
+.timer b { white-space: nowrap; font-size: 30px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.timer small { color: var(--muted-foreground); font-size: 11px; }
+.site { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 8px 10px; border-radius: calc(var(--radius) - 2px); background: var(--muted); }
+.site span { color: var(--muted-foreground); }
+.recent { padding: 4px 12px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.rrow { display: grid; grid-template-columns: 44px 20px minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 8px 0; font-size: 12px; }
+.rrow + .rrow { border-top: 1px solid var(--border); }
+.rrow .when { color: var(--muted-foreground); font-variant-numeric: tabular-nums; font-size: 11px; }
+.rrow .dur { font-variant-numeric: tabular-nums; }
+.rrow.idle .nm, .rrow.idle .dur { color: var(--muted-foreground); font-weight: 400; }
+.rhead { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-foreground); padding: 10px 0 4px; }
+.strip { display: grid; grid-template-columns: 20px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 9px 12px; }
+.strip .nm small { color: var(--muted-foreground); font-weight: 400; }
+.strip .tm { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; font-size: 12px; }
+.strip .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--active); }
+.strip .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted-foreground); }
+.ringcard.slim { grid-template-columns: 64px 1fr; padding: 10px 12px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>TikTik: the “Now” view</h1>
+    <p>Two placements for a live view of what you're using right now, built on the agreed design (zinc, monochrome, JetBrains Mono, 380 × 560pt). Light and dark side by side, example data, current time 14:07. The Xcode timer on the Now tab ticks live, the way it would in the app.</p>
+  </header>
+  <div id="screens" style="display:grid;gap:44px"></div>
+</div>
+
+<script>
+// ---------- example data ----------
+const RANGES = {
+  "6h":  { tab: 0, badge: "Last 6h",  act: 214, idle: 22, away: 124, unit: "15 min", max: 15, yt: [0, 15], ticks: [0, 8, 16, 23], buckets: 24, step: 15 },
+  "12h": { tab: 1, badge: "Last 12h", act: 302, idle: 41, away: 377, unit: "30 min", max: 30, yt: [0, 15, 30], ticks: [0, 8, 16, 23], buckets: 24, step: 30 },
+  "24h": { tab: 2, badge: "Last 24h", act: 342, idle: 48, away: 1050, unit: "hour", max: 60, yt: [0, 30, 60], ticks: [0, 6, 12, 18, 23], buckets: 24, step: 60 },
+  "1W":  { tab: 3, badge: "Sep 27 – Oct 3", act: 2289, idle: 330, away: 7461, unit: "day", max: 480, yt: [0, 240, 480], labels: ["Sat 27","Sun 28","Mon 29","Tue 30","Wed 1","Thu 2","Fri 3"], series: [95,40,410,452,398,512,382] },
+  "1M":  { tab: 4, badge: "Sep 4 – Oct 3", act: 9420, idle: 1310, away: 32470, unit: "day", max: 600, yt: [0, 300, 600], labels: Array.from({length: 30}, (_, i) => { const d = new Date(2026, 8, 4 + i); return d.toLocaleDateString("en-US", {month: "short", day: "numeric"}); }), series: Array.from({length: 30}, (_, i) => { const dow = new Date(2026, 8, 4 + i).getDay(); return dow === 0 || dow === 6 ? 40 + (i * 13) % 70 : 300 + (i * 47) % 200; }) },
+  "6M":  { tab: 5, badge: "Apr 4 – Oct 3", act: 48000, idle: 7200, away: 206880, unit: "week", max: 3000, yt: [0, 1500, 3000], labels: Array.from({length: 26}, (_, i) => { const d = new Date(2026, 3, 4 + i * 7); return "wk of " + d.toLocaleDateString("en-US", {month: "short", day: "numeric"}); }), series: [1800,2100,1950,2300,2200,800,600,2400,2500,2350,2280,2600,2450,1200,2300,2400,2550,2200,2380,2500,2610,2420,2050,2290,2350,1940] },
+};
+// [icon, name, share of active, RAM MB or null]
+const APPS = [["Xc","Xcode",0.392,2150],["Ch","Google Chrome",0.269,3480],["Sl","Slack",0.14,612],["Fi","Figma",0.091,null],["Te","Terminal",0.079,88],["Mu","Music",0.029,141]];
+const DOMAINS = [["github.com",38],["google.com",21],["stackoverflow.com",14],["youtube.com",9],["Private browsing",6],["4 others",4]];
+
+// ---------- helpers ----------
+const fmt = m => { m = Math.round(m); if (m < 1) return "<1m"; const h = Math.floor(m / 60), r = m % 60; return h ? `${h}h ${String(r).padStart(2, "0")}m` : `${r}m`; };
+const ram = mb => mb == null ? "—" : mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
+const hot = mb => mb != null && mb >= 2048;
+const pad2 = n => String(n).padStart(2, "0");
+const NOW = { h: 14, m: 0 };
+function rangeSeries(k) {
+  const R = RANGES[k];
+  if (R.series) return { values: R.series, labels: R.labels, tick: i => { const l = R.labels[i].replace("wk of ", ""); return R.series.length === 7 ? l.slice(0, 3) : R.series.length === 30 ? l : l.split(" ")[0]; } };
+  const n = R.buckets, vals = [], labels = [];
+  for (let i = 0; i < n; i++) {
+    const minsAgo = (n - 1 - i) * R.step, t = (NOW.h * 60 + NOW.m - minsAgo + 1440 * 2) % 1440;
+    labels.push(`${pad2(Math.floor(t / 60))}:${pad2(t % 60)}`);
+    const awake = !(k === "24h" && i >= 3 && i <= 16) && !(k === "12h" && i >= 2 && i <= 7) && !(k === "6h" && i >= 9 && i <= 12);
+    vals.push(awake ? Math.round(R.max * (0.35 + 0.6 * Math.abs(Math.sin(i * 1.7 + R.step)))) : 0);
+  }
+  return { values: vals, labels, tick: i => i === n - 1 ? "now" : labels[i].slice(0, 5) };
+}
+function ring(R) {
+  const T = R.act + R.idle + R.away, r = 34, C = 2 * Math.PI * r; let off = 0;
+  const arcs = [["--active", R.act], ["--idle", R.idle], ["--away", R.away]].map(([c, m]) => { const len = m / T * C; const a = `<circle r="${r}" cx="42" cy="42" fill="none" stroke="var(${c})" stroke-width="10" stroke-dasharray="${Math.max(len - 2, 0)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 42 42)"/>`; off += len; return a; }).join("");
+  return `<div class="card ringcard"><svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">${arcs}<text x="42" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="var(--foreground)" font-family="JetBrains Mono, monospace">${Math.round(R.act / T * 100)}%</text></svg>
+    <div class="ringlist"><div><i class="dot" style="background:var(--active)"></i>Active<span class="v">${fmt(R.act)}</span></div><div><i class="dot" style="background:var(--idle)"></i>Idle<span class="v">${fmt(R.idle)}</span></div><div><i class="dot" style="background:var(--away)"></i>Away<span class="v">${fmt(R.away)}</span></div></div></div>`;
+}
+const legend = R => `<div class="legend"><span><i class="dot" style="background:var(--active)"></i>Active <b>${fmt(R.act)}</b></span><span><i class="dot" style="background:var(--idle)"></i>Idle <b>${fmt(R.idle)}</b></span><span><i class="dot" style="background:var(--away)"></i>Away <b>${fmt(R.away)}</b></span></div>`;
+function chart(k, vscale = 1, title = "Active") {
+  const scale = 1, R = RANGES[k], S = rangeSeries(k), n = S.values.length, W = 324, H = 84, padL = 30, bw = (W - padL) / n, max = R.max;
+  const y = v => H - 14 - v / max * (H - 20);
+  const yl = v => v === 0 ? "0" : v * scale >= 60 && (v * scale) % 60 === 0 ? `${v * scale / 60}h` : `${Math.round(v * scale)}m`;
+  let g = R.yt.map(v => `<line class="gl" x1="${padL}" x2="${W}" y1="${y(v * scale)}" y2="${y(v * scale)}"/><text class="ax" x="0" y="${y(v * scale) + 3}">${yl(v)}</text>`).join("");
+  g += S.values.map((v0, i) => { const v = Math.round(v0 * vscale), x = padL + i * bw, h = Math.max(y(0) - y(Math.min(v, max)), v ? 2 : 0);
+    return `<g data-tip="${S.labels[i]} · ${fmt(v)}"><rect class="hit" x="${x}" y="0" width="${bw}" height="${H - 14}"/>${v ? `<rect class="bar-m" x="${x + 1}" y="${y(0) - h}" width="${Math.max(bw - 2, 1)}" height="${h}" rx="${n > 20 ? 1.5 : 3}"/>` : ""}</g>`; }).join("");
+  const ticks = S.values.length === 7 ? [0,1,2,3,4,5,6] : S.values.length === 30 ? [0, 10, 20, 29] : S.values.length === 26 ? [0, 9, 17, 25] : R.ticks;
+  g += ticks.map(i => `<text class="ax" x="${padL + i * bw + bw / 2}" y="${H - 2}" text-anchor="middle">${S.tick(i)}</text>`).join("");
+  return `<div class="card chart"><div class="ctitle"><span>${title}</span><span>per ${R.unit}</span></div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${title} time per ${R.unit}">${g}</svg></div>`;
+}
+const tabs = k => `<div class="tabs">${["6h","12h","24h","1W","1M","6M"].map((t, i) => `<span${i === RANGES[k].tab ? ' class="on"' : ""}>${t}</span>`).join("")}</div>`;
+const gear = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`;
+const pause = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>`;
+const hg = (s = 15) => `<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h8M4 14h8M5 2c0 3.2 6 3.8 6 6s-6 2.8-6 6M11 2c0 3.2-6 3.8-6 6s6 2.8 6 6"/></svg>`;
+
+function appList(k, sortBy = "time") {
+  const R = RANGES[k];
+  let apps = APPS.map(([ic, n, share, mb]) => ({ ic, n, mins: R.act * share, mb }));
+  if (sortBy === "ram") apps.sort((a, b) => (b.mb ?? -1) - (a.mb ?? -1));
+  const hdr = `<div class="cols h"><span></span><span>App</span><span class="n${sortBy === "time" ? " on" : ""}">Time${sortBy === "time" ? " ↓" : ""}</span><span class="n${sortBy === "ram" ? " on" : ""}">RAM${sortBy === "ram" ? " ↓" : ""}</span><span class="n">%</span><span></span></div>`;
+  const rows = apps.map(a => `<div class="cols r"><span class="icon">${a.ic}</span><span class="nm">${a.n}</span><span class="n">${fmt(a.mins)}</span><span class="n ${hot(a.mb) ? "hot" : "m"}">${ram(a.mb)}</span><span class="n m">${Math.round(a.mins / R.act * 100)}%</span><span class="chev">›</span><span class="bar"><i style="width:${a.mins / R.act * 100}%"></i></span></div>`).join("");
+  return `<div class="card list">${hdr}<div class="rows">${rows}</div></div>`;
+}
+const footer = `<div class="foot"><span>Tracking · updated just now</span><span style="display:inline-flex;gap:4px"><span class="iconbtn outline" title="Pause">${pause}</span><span class="iconbtn outline" title="Settings">${gear}</span></span></div>`;
+function mainPopover(k, sortBy) {
+  const R = RANGES[k], long = ["1W", "1M", "6M"].includes(k);
+  return `<div class="pop"><div class="top"><span class="ttl">TikTik</span><span class="badge">${R.badge}</span></div>${tabs(k)}${long ? legend(R) + chart(k) : ring(R)}${appList(k, sortBy)}${footer}</div>`;
+}
+function detailPopover(appIdx, k) {
+  const R = RANGES[k], [ic, n, share, mb] = APPS[appIdx], mins = R.act * share;
+  const doms = appIdx === 1 ? `<div class="card drows"><div class="ctitle" style="padding:10px 0 4px"><span>Top domains</span><span>% of ${n}</span></div>${DOMAINS.map(([d, p]) => `<div class="drow"><span class="nm" style="font-weight:400">${d}</span><span class="n">${fmt(mins * p / 92)}</span><span class="n m">${Math.round(p / 92 * 100)}%</span><span class="bar"><i style="width:${p / 92 * 100}%"></i></span></div>`).join("")}</div>` : "";
+  return `<div class="pop${appIdx === 1 ? " auto" : ""}"><div class="top"><button class="back" type="button">‹ Back</button><span class="badge">${R.badge}</span></div>
+    <div class="dhead"><span class="icon">${ic}</span><div class="t"><b>${n}</b><small>${fmt(mins)} active · ${Math.round(share * 100)}% of active time</small></div></div>
+    ${tabs(k)}${chart(k, share * 1.6, "Usage")}
+    <div class="card kv"><div><small>Sessions</small><b>${appIdx === 1 ? 9 : 6}</b></div><div><small>Longest</small><b>${appIdx === 1 ? "34m" : "52m"}</b></div><div><small>First · Last used</small><b>${appIdx === 1 ? "15:02 · 13:41" : "15:10 · 13:58"}</b></div><div><small>RAM now</small><b>${ram(mb)}</b></div></div>${doms}</div>`;
+}
+const set = (t, d, c) => `<div class="set"><b>${t}</b><small>${d}</small>${c}</div>`;
+function settingsPopover(full) {
+  const g = (label, rows) => `<div class="grp"><div class="glabel">${label}</div><div class="card">${rows.join("")}</div></div>`;
+  return `<div class="pop${full ? " auto" : ""}"><div class="top"><button class="back" type="button">‹ Back</button><span class="ttl">Settings</span><span style="width:40px"></span></div><div class="scroll">
+    ${g("General", [set("Launch at login", "Start TikTik when you log in.", `<span class="switch"></span>`), set("Menu bar style", "What appears in the menu bar.", `<span class="select">${hg(12)}&nbsp;Icon + time</span>`), set("Daily goal", "Used by the Ring styles.", `<span class="select">8h</span>`)])}
+    ${g("Tracking", [set("Idle after", "No input for this long counts as Idle, backdated to your last input.", `<span class="select">5 min</span>`), set("Website tracking", "Chrome, Brave, Edge. Domain only; Incognito never recorded.", `<span class="switch"></span>`), set("Browser permissions", "Chrome ✓ · Brave — · Edge —", `<span class="btn">Open…</span>`), set("Excluded apps", "Never recorded. 1Password, Messages.", `<span class="btn">Edit…</span>`), set("Pause tracking", "For 15 min, 1 hour, or until resumed.", `<span class="select">Off</span>`)])}
+    ${g("Data", [set("Export CSV", "Raw intervals or daily totals.", `<span class="btn">Export…</span>`), set("Storage", "182 days kept · 14.2 MB", `<span></span>`), set("Clear all data", "Deletes all history. Asks first.", `<span class="btn destructive">Clear…</span>`)])}
+    ${g("About", [set("TikTik 1.0", "Everything stays on this Mac.", `<span class="btn">Quit</span>`)])}</div></div>`;
+}
+const ringIcon = `<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="2.2"/><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-dasharray="26.8 37.7" transform="rotate(-90 8 8)"/></svg>`;
+const dotIcon = `<svg width="6" height="6" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>`;
+const STYLES = [["A","Icon + time",`${hg(12)}5h 42m`],["B","Icon",hg(12)],["C","Text","5h 42m"],["D","Ring",ringIcon],["E","Ring + time",`${ringIcon}5h 42m`],["F","Time + state",`5h 42m${dotIcon}`]];
+const welcome = () => `<div class="wwin"><div class="wtb"><i></i><i></i><i></i></div><div class="wbody">
+  <div class="wtitle"><b>Welcome to TikTik</b><span>Tracks active, idle and away time on this Mac, per app. Everything stays on this Mac.</span></div>
+  <div class="glabel">Menu bar style · change any time in Settings</div>
+  <div class="tiles">${STYLES.map(([id, n, p], i) => `<div class="tile${i === 0 ? " on" : ""}"><div class="prev">${p}</div><div class="tn"><span>${n}</span><em>${id}</em></div></div>`).join("")}</div>
+  <div class="card">${set("Website tracking in Chrome", "macOS will ask once to let TikTik read the active tab's address in Chrome, Brave or Edge. Only the domain is stored. Incognito is never recorded.", `<span class="btn">Allow…</span>`)}${set("Launch at login", "Recommended. TikTik can't record time while it isn't running.", `<span class="switch"></span>`)}</div>
+  <div class="wfoot"><span class="btn primary">Continue</span></div></div></div>`;
+const MB = [["A · Icon + time (default)", `${hg()}<span class="mono">5h 42m</span>`], ["B · Icon only", hg()], ["C · Text only", `<span class="mono">5h 42m</span>`], ["D · Ring", ringIcon.replace(/12/g, "15")], ["E · Ring + time", `${ringIcon.replace(/12/g, "15")}<span class="mono">5h 42m</span>`], ["F · Time + state dot", `<span class="mono">5h 42m</span>${dotIcon}`]];
+const wifi = `<svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><path d="M8 11.5 5.6 8.9a3.4 3.4 0 0 1 4.8 0zM3.7 7a6.1 6.1 0 0 1 8.6 0l1.3-1.3a8 8 0 0 0-11.2 0zM.9 4.2a10 10 0 0 1 14.2 0L16 3.3A11.3 11.3 0 0 0 0 3.3z"/></svg>`;
+const menubars = () => `<div class="mbs">${MB.map(([l, c]) => `<div class="mbrow"><span class="l">${l}</span><div class="mb"><span class="it">${wifi}</span><span class="it me">${c}</span><span class="it">Sat Oct 3</span><span class="it">14:02</span></div></div>`).join("")}</div>`;
+
+
+// ---------- Now view ----------
+const tabs7 = (active) => `<div class="tabs seven">${["Now","6h","12h","24h","1W","1M","6M"].map(t => `<span class="${t === active ? "on" : ""}${t === "Now" ? " live" : ""}">${t}</span>`).join("")}</div>`;
+const RECENT = [["13:15","Xc","Xcode","47m",false],["13:09","Ch","Google Chrome","6m",false],["13:02","","Idle","7m",true],["12:41","Sl","Slack","21m",false],["12:20","Xc","Xcode","21m",false]];
+const CUR = {
+  xcode:  { ic: "Xc", n: "Xcode", state: "Active", timer: "47m 12s", since: "since 13:15", today: "2h 14m", ram: 2150, site: null, recent: RECENT },
+  chrome: { ic: "Ch", n: "Google Chrome", state: "Active", timer: "6m 41s", since: "since 14:01", today: "1h 32m", ram: 3480, site: ["github.com", "4m 10s on this site"], recent: [["14:01","Ch","Google Chrome","6m",false], ...RECENT.slice(0, 4)] },
+  idle:   { ic: "Xc", n: "Xcode", state: "Idle", timer: "6m 30s", since: "idle since 14:01", today: "2h 14m", ram: 2150, site: null, recent: [["14:01","","Idle","6m",true], ...RECENT.slice(0, 4)] },
+};
+function nowCard(c) {
+  const idle = c.state === "Idle";
+  return `<div class="card nowcard">
+    <div class="nowtop"><span class="icon">${c.ic}</span><div class="t"><b>${c.n}</b><small>frontmost app</small></div><span class="state${idle ? " idle" : ""}"><i></i>${idle ? "Idle" : "Active"}</span></div>
+    <div class="timer"><b>${c.timer}</b><small>${c.since}</small></div>
+    ${c.site ? `<div class="site"><b style="font-weight:500">${c.site[0]}</b><span>${c.site[1]}</span></div>` : ""}
+    <div class="kv card" style="border-radius:calc(var(--radius) - 2px)"><div><small>Today in this app</small><b>${c.today}</b></div><div><small>RAM now</small><b class="${hot(c.ram) ? "" : ""}">${ram(c.ram)}</b></div></div>
+  </div>`;
+}
+const recentList = c => `<div class="card recent"><div class="rhead"><span>Recent</span><span>today</span></div>${c.recent.map(([w, ic, n, d, idle]) => `<div class="rrow${idle ? " idle" : ""}"><span class="when">${w}</span>${ic ? `<span class="icon">${ic}</span>` : `<span class="icon" style="background:transparent;border-style:dashed"></span>`}<span class="nm">${n}</span><span class="dur">${d}</span></div>`).join("")}</div>`;
+const nowTabPopover = c => `<div class="pop"><div class="top"><span class="ttl">TikTik</span><span class="badge">Now · 14:07</span></div>${tabs7("Now")}${nowCard(c)}${recentList(c)}${footer}</div>`;
+function stripCard(c) {
+  return `<div class="card strip"><span class="icon">${c.ic}</span><span class="nm">${c.n}${c.site ? ` <small>· ${c.site[0]}</small>` : ""}</span><span class="tm"><span class="lbl">now</span>${c.timer.replace(/ \d+s$/, "")}<span class="pulse"${c.state === "Idle" ? ' style="background:var(--idle)"' : ""}></span></span></div>`;
+}
+function stripPopover(k, c) {
+  const R = RANGES[k], long = ["1W", "1M", "6M"].includes(k);
+  return `<div class="pop"><div class="top"><span class="ttl">TikTik</span><span class="badge">${R.badge}</span></div>${tabs(k)}${stripCard(c)}${long ? legend(R) + chart(k) : ring(R)}${appList(k)}${footer}</div>`;
+}
+// 7-tab main view so option A shows the effect on the normal ranges too
+function main7(k) {
+  const R = RANGES[k];
+  return `<div class="pop"><div class="top"><span class="ttl">TikTik</span><span class="badge">${R.badge}</span></div>${tabs7(k)}${ring(R)}${appList(k)}${footer}</div>`;
+}
+const SCREENS = [
+  ["A · A “Now” tab before 6h", "A seventh tab. Now is a live page rather than a range: the frontmost app, how long you've been in it this stretch (ticking every second while the popover is open), the Chrome site, today's total and RAM, and a Recent list of today's switches. The tabs get about 50pt each instead of 58pt. The dot on “Now” marks it as live."],
+  ["now-tab-xcode", "A · Now tab: working in Xcode", "", () => nowTabPopover(CUR.xcode)],
+  ["now-tab-chrome", "A · Now tab: in Chrome", "Chromium browsers add the current site and time on it.", () => nowTabPopover(CUR.chrome)],
+  ["now-tab-idle", "A · Now tab: idle", "After the idle threshold the badge switches to Idle and the timer counts idle time. The Recent list shows the idle stretch in muted text.", () => nowTabPopover(CUR.idle)],
+  ["now-tab-24h", "A · The 24h tab with seven tabs", "How the normal ranges look once the tab bar holds seven items.", () => main7("24h")],
+  ["B · A “Now” strip on every range", "No extra tab. A slim single-line card under the tabs shows the current app, the Chrome site if any, and the live timer (to the minute), on every range. Always visible, but it costs about 40pt of list height on every view, and there's no room for today's total, RAM or recent history."],
+  ["now-strip-24h", "B · Strip on 24h, in Chrome", "", () => stripPopover("24h", CUR.chrome)],
+  ["now-strip-1w", "B · Strip on 1W, in Xcode", "", () => stripPopover("1W", CUR.xcode)],
+];
+document.getElementById("screens").innerHTML = SCREENS.map(s => s.length === 2
+  ? `<section class="screen"><div class="sh"><h2 style="font-size:22px">${s[0]}</h2><p>${s[1]}</p></div></section>`
+  : `<section class="screen" id="${s[0]}"><div class="sh"><h2>${s[1]}</h2>${s[2] ? `<p>${s[2]}</p>` : ""}</div>
+  <div class="pair"><div class="scroller"><div class="shot t-light" data-shot="${s[0]}-light">${s[3]()}</div></div><div class="scroller"><div class="shot t-dark" data-shot="${s[0]}-dark">${s[3]()}</div></div></div></section>`).join("");
+document.querySelectorAll(".chart").forEach(c => {
+  const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; c.appendChild(tip);
+  c.querySelectorAll("g[data-tip]").forEach(g => {
+    g.addEventListener("mouseenter", () => { const r = g.getBoundingClientRect(), cr = c.getBoundingClientRect(); tip.textContent = g.dataset.tip; tip.style.left = (r.left - cr.left + r.width / 2) + "px"; tip.style.top = (r.top - cr.top + 20) + "px"; tip.hidden = false; });
+    g.addEventListener("mouseleave", () => tip.hidden = true);
+  });
+});
+// live ticking timer on the Now tab mockups
+let secs = 47 * 60 + 12;
+setInterval(() => { secs++; document.querySelectorAll("#now-tab-xcode .timer b").forEach(b => b.textContent = `${Math.floor(secs / 60)}m ${String(secs % 60).padStart(2, "0")}s`); }, 1000);
+</script>

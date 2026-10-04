@@ -1,0 +1,132 @@
+<title>TikTik Settings</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: two placements side by side — settings as a page inside the 380pt popover, and as a standard macOS Settings window with a sidebar. */
+:root {
+  --page-bg: oklch(0.985 0 0); --page-fg: oklch(0.205 0 0); --page-muted: oklch(0.556 0 0); --page-border: oklch(0.922 0 0);
+  --sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --background: oklch(1 0 0); --foreground: oklch(0.141 0.005 285.823); --card: oklch(1 0 0); --primary: oklch(0.21 0.006 285.885); --primary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.967 0.001 286.375); --muted-foreground: oklch(0.552 0.016 285.938); --border: oklch(0.92 0.004 286.32); --ring: oklch(0.705 0.015 286.067);
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark;
+  --background: oklch(0.141 0.005 285.823); --foreground: oklch(0.985 0 0); --card: oklch(0.21 0.006 285.885); --primary: oklch(0.92 0.004 286.32); --primary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.274 0.006 286.033); --muted-foreground: oklch(0.705 0.015 286.067); --border: oklch(1 0 0 / 10%); --ring: oklch(0.552 0.016 285.938); } }
+:root[data-theme="dark"] {
+  --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark;
+  --background: oklch(0.141 0.005 285.823); --foreground: oklch(0.985 0 0); --card: oklch(0.21 0.006 285.885); --primary: oklch(0.92 0.004 286.32); --primary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.274 0.006 286.033); --muted-foreground: oklch(0.705 0.015 286.067); --border: oklch(1 0 0 / 10%); --ring: oklch(0.552 0.016 285.938); }
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--sys); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 64px; display: grid; gap: 40px; }
+h1 { font-size: 24px; font-weight: 600; margin: 0 0 6px; }
+header p { margin: 0; color: var(--page-muted); line-height: 1.55; max-width: 70ch; }
+.opt { display: grid; gap: 14px; border-top: 1px solid var(--page-border); padding-top: 26px; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.head .tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid var(--page-fg); padding: 2px 8px; border-radius: 999px; }
+.head p { margin: 0; flex-basis: 100%; color: var(--page-muted); font-size: 13px; line-height: 1.5; }
+.row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.scroller { overflow-x: auto; max-width: 100%; }
+
+.win { width: 520px; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: 12px; font-family: var(--mono); font-size: 12.5px; overflow: hidden; }
+.tb { height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; }
+.tb i { width: 12px; height: 12px; border-radius: 50%; background: var(--border); }
+.body { padding: 4px 24px 22px; display: grid; gap: 18px; }
+.title { display: grid; gap: 4px; }
+.title b { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.title span { color: var(--muted-foreground); line-height: 1.5; }
+.label { font-size: 11px; color: var(--muted-foreground); }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; display: grid; gap: 8px; }
+.tile.on { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.tile .prev { height: 24px; border-radius: 6px; background: var(--muted); display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11.5px; }
+.tile .nm { font-size: 11px; display: flex; justify-content: space-between; }
+.tile .nm em { font-style: normal; color: var(--muted-foreground); }
+.card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.set { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; align-items: center; padding: 12px 14px; }
+.set + .set { border-top: 1px solid var(--border); }
+.set b { font-weight: 500; }
+.set small { color: var(--muted-foreground); grid-column: 1; line-height: 1.45; font-size: 11px; }
+.set > :last-child { grid-row: 1 / span 2; grid-column: 2; }
+.sw { width: 32px; height: 18px; border-radius: 999px; background: var(--primary); position: relative; }
+.sw::after { content: ""; position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--background); }
+.sw.off { background: var(--border); } .sw.off::after { right: auto; left: 2px; }
+.btn { font: inherit; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--background); color: var(--foreground); }
+.btn.primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.foot .muted { color: var(--muted-foreground); font-size: 11px; }
+.hint { color: var(--muted-foreground); font-size: 11px; line-height: 1.5; display: flex; gap: 8px; }
+
+.notif { width: 340px; border-radius: 16px; padding: 12px 14px; display: grid; grid-template-columns: 34px 1fr; gap: 2px 10px; font-family: var(--sys); font-size: 12.5px;
+  background: oklch(0.96 0.003 286 / 0.95); color: oklch(0.2 0 0); border: 1px solid oklch(0 0 0 / 0.08); box-shadow: 0 8px 24px oklch(0 0 0 / 0.12); }
+.notif .ic { grid-row: span 2; width: 34px; height: 34px; border-radius: 8px; background: oklch(0.75 0.01 286); display: grid; place-items: center; color: white; font-size: 16px; }
+.notif b { font-weight: 600; } .notif span { color: oklch(0.4 0 0); line-height: 1.4; }
+.caption { font-size: 11px; color: var(--page-muted); margin-top: 6px; }
+</style>
+<style>
+.pop { width: 380px; height: 560px; box-sizing: border-box; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: 14px; font-family: var(--mono); font-size: 12.5px; padding: 14px; display: grid; grid-template-rows: auto 1fr; gap: 12px; overflow: hidden; }
+.pop .scroll { overflow-y: auto; display: grid; gap: 14px; align-content: start; padding-right: 2px; }
+.back { font: inherit; font-size: 12px; background: transparent; border: 0; color: var(--foreground); padding: 0; }
+.ptop { display: flex; justify-content: space-between; align-items: center; }
+.ptop b { font-size: 14px; }
+.group { display: grid; gap: 6px; }
+.gl { font-size: 11px; color: var(--muted-foreground); padding-left: 2px; }
+.sel { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); padding: 4px 8px 4px 10px; font-size: 12px; background: var(--background); white-space: nowrap; }
+.sel::after { content: "⌄"; color: var(--muted-foreground); font-size: 11px; transform: translateY(-2px); }
+.btn.destructive { background: oklch(0.577 0.245 27.325); color: oklch(0.985 0 0); border-color: transparent; }
+.opt-tag { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px dashed var(--muted-foreground); color: var(--muted-foreground); border-radius: 4px; padding: 0 4px; margin-left: 6px; vertical-align: 1px; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { font-size: 11px; border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; background: var(--muted); }
+.swin { width: 700px; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: 12px; font-family: var(--mono); font-size: 12.5px; overflow: hidden; }
+.swin .tb { justify-content: flex-start; border-bottom: 1px solid var(--border); background: var(--muted); height: 34px; }
+.swin .tb span { margin-left: 10px; font-size: 12px; color: var(--muted-foreground); }
+.sbody { display: grid; grid-template-columns: 170px 1fr; min-height: 470px; }
+.side { border-right: 1px solid var(--border); padding: 10px 8px; display: grid; gap: 2px; align-content: start; }
+.side div { padding: 7px 10px; border-radius: 8px; font-size: 12px; }
+.side div.on { background: var(--muted); font-weight: 500; }
+.smain { padding: 18px; display: grid; gap: 14px; align-content: start; }
+.legendnote { font-size: 12px; color: var(--page-muted); }
+</style>
+<div class="wrap">
+  <header>
+    <h1>TikTik settings</h1>
+    <p>Every setting decided so far, in two placements: as a page inside the popover (reached with a gear button, with Back to return) or as a standard macOS Settings window (opened with ⌘, or from the popover). Rows marked <span class="opt-tag" style="margin:0">optional</span> haven't been agreed yet; I'll ask about each one. Both mockups follow your system light/dark setting.</p>
+  </header>
+  <section class="opt"><div class="head"><h2>1 · Settings page inside the popover</h2><span class="tag">recommended</span><p>Same 380 × 560 popover with a Back button, and the content scrolls. No extra window, so nothing extra in memory; consistent with the app detail view. The cost is that everything is stacked in one narrow column.</p></div>
+    <div class="row"><div class="scroller" id="pop"></div></div></section>
+  <section class="opt"><div class="head"><h2>2 · Separate Settings window</h2><p>A standard macOS Settings window with sections in a sidebar. Roomier and conventional (⌘,), but it's a second window, using roughly 20–40 MB extra while open, and it closes the popover. Showing the General section; the other sections hold the remaining rows from the popover version.</p></div>
+    <div class="scroller" id="win"></div></section>
+</div>
+<script>
+const hg = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h8M4 14h8M5 2c0 3.2 6 3.8 6 6s-6 2.8-6 6M11 2c0 3.2-6 3.8-6 6s6 2.8 6 6"/></svg>`;
+const set = (t, d, ctl, opt) => `<div class="set"><b>${t}${opt ? '<span class="opt-tag">optional</span>' : ""}</b><small>${d}</small>${ctl}</div>`;
+const sw = on => `<span class="sw${on ? "" : " off"}"></span>`;
+const sel = v => `<span class="sel">${v}</span>`;
+const G = {
+  general: ["General", [
+    set("Launch at login", "Start TikTik automatically when you log in.", sw(true)),
+    set("Menu bar style", "What appears in the menu bar.", sel(`${hg}&nbsp;Icon + time`)),
+    set("Daily goal", "Used by the Ring styles (D, E).", sel("8h")),
+  ]],
+  tracking: ["Tracking", [
+    set("Idle after", "No keyboard, mouse or trackpad input for this long counts as Idle, backdated to your last input.", sel("5 min")),
+    set("Website tracking", "Chrome, Brave, Edge and other Chromium browsers. Domain only; Incognito is never recorded.", sw(true)),
+    set("Browser permissions", "Chrome ✓ · Brave — · Edge —", `<span class="btn">Open…</span>`),
+    set("Excluded apps", "Never record these apps; their time counts as untracked.", `<span class="btn">Edit…</span>`, true),
+    set("Pause tracking", "Stop recording for 15 min, 1 hour, or until you resume.", sel("Off"), true),
+  ]],
+  data: ["Data", [
+    set("Export CSV", "Raw intervals or daily totals, for a range you choose.", `<span class="btn">Export…</span>`),
+    set("Storage", "182 days kept · 14.2 MB · cleaned daily.", `<span></span>`),
+    set("Clear all data", "Permanently deletes all recorded history. Asks you to confirm.", `<span class="btn destructive">Clear…</span>`),
+  ]],
+  about: ["About", [
+    set("TikTik 1.0", "Everything stays on this Mac.", `<span class="btn">Quit TikTik</span>`),
+  ]],
+};
+const groups = keys => keys.map(k => `<div class="group"><div class="gl">${G[k][0]}</div><div class="card">${G[k][1].join("")}</div></div>`).join("");
+document.getElementById("pop").innerHTML = `<div class="pop"><div class="ptop"><button class="back" type="button">‹ Back</button><b>Settings</b><span style="width:40px"></span></div><div class="scroll">${groups(["general","tracking","data","about"])}</div></div>`;
+document.getElementById("win").innerHTML = `<div class="swin"><div class="tb"><i></i><i></i><i></i><span>TikTik Settings</span></div><div class="sbody"><div class="side">${Object.values(G).map((g, i) => `<div class="${i === 0 ? "on" : ""}">${g[0]}</div>`).join("")}</div><div class="smain"><b style="font-size:15px">General</b><div class="card">${G.general[1].join("")}</div></div></div></div>`;
+</script>

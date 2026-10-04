@@ -1,0 +1,131 @@
+<title>Tracker Corner Radius</title>
+<style>
+/* Layout: one row per base color — label on top, light + dark popover previews side by side, token swatches under each. */
+:root {
+  --page-bg: oklch(0.985 0 0);
+  --page-fg: oklch(0.205 0 0);
+  --page-muted: oklch(0.556 0 0);
+  --page-border: oklch(0.922 0 0);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+}
+:root[data-theme="dark"] { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--font); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 40px 20px 64px; display: grid; gap: 48px; }
+header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; text-wrap: balance; }
+header p { margin: 0; color: var(--page-muted); max-width: 68ch; line-height: 1.55; }
+
+section.base { display: grid; gap: 16px; border-top: 1px solid var(--page-border); padding-top: 28px; }
+.base-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.base-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.base-head .tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--page-muted); border: 1px solid var(--page-border); padding: 2px 8px; border-radius: 999px; }
+.base-head p { margin: 0; color: var(--page-muted); font-size: 13px; flex-basis: 100%; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px 20px; }
+.toggle { justify-self: start; display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--page-border); border-radius: 10px; }
+.toggle button { font: inherit; font-size: 13px; padding: 5px 14px; border-radius: 7px; border: 0; background: transparent; color: var(--page-muted); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--page-fg); color: var(--page-bg); }
+.toggle button:focus-visible { outline: 2px solid var(--page-muted); outline-offset: 2px; }
+.rec { color: var(--page-fg); border-color: var(--page-fg) !important; }
+.mode { display: grid; gap: 10px; min-width: 0; }
+.mode-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--page-muted); }
+
+/* ---- the mock popover, driven only by shadcn tokens ---- */
+.pop {
+  background: var(--background); color: var(--foreground);
+  border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px);
+  padding: 14px; display: grid; gap: 12px; font-size: 13px;
+}
+.pop-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pop-title { font-weight: 600; font-size: 14px; }
+.badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: calc(var(--radius) - 4px); background: var(--secondary); color: var(--foreground); border: 1px solid transparent; }
+.badge.outline { background: transparent; border-color: var(--border); }
+.tabs { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--muted); border-radius: var(--radius); padding: 3px; gap: 2px; }
+.tabs span { text-align: center; font-size: 12px; font-weight: 500; padding: 4px 0; border-radius: calc(var(--radius) - 2px); color: var(--muted-foreground); }
+.tabs span.on { background: var(--background); color: var(--foreground); box-shadow: 0 1px 2px oklch(0 0 0 / 0.08); border: 1px solid var(--border); padding: 3px 0; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); }
+.stats div { padding: 10px 12px; display: grid; gap: 2px; }
+.stats div + div { border-left: 1px solid var(--border); }
+.stats small { color: var(--muted-foreground); font-size: 11px; }
+.stats b { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.apps { padding: 4px 12px; }
+.app { display: grid; grid-template-columns: 20px 1fr auto; gap: 4px 10px; align-items: center; padding: 8px 0; }
+.app + .app { border-top: 1px solid var(--border); }
+.icon { width: 20px; height: 20px; border-radius: 5px; background: var(--secondary); border: 1px solid var(--border); display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--muted-foreground); grid-row: span 2; }
+.app-name { font-weight: 500; }
+.app-time { font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12px; }
+.app-time em { font-style: normal; color: var(--muted-foreground); margin-left: 6px; }
+.bar { grid-column: 2 / 4; height: 6px; border-radius: 999px; background: color-mix(in oklch, var(--primary) 18%, transparent); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.foot .muted { color: var(--muted-foreground); font-size: 12px; }
+.btns { display: flex; gap: 6px; }
+.btn { font: inherit; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: calc(var(--radius) - 2px); border: 1px solid transparent; }
+.btn.default { background: var(--primary); color: var(--primary-foreground); }
+.btn.outline { background: var(--background); color: var(--foreground); border-color: var(--border); }
+.btn.ghost { background: transparent; color: var(--foreground); }
+.btn.destructive { background: var(--destructive); color: oklch(0.985 0 0); }
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.sw { display: grid; gap: 4px; font-size: 10.5px; color: var(--page-muted); min-width: 0; }
+.sw i { display: block; height: 22px; border-radius: 6px; border: 1px solid var(--page-border); }
+.sw span { overflow-wrap: anywhere; }
+</style>
+<div class="wrap">
+  <header>
+    <h1>Corner radius options</h1>
+    <p>The tracker popover in zinc, monochrome, with six values of shadcn's <code>--radius</code>. Each setting changes the cards, tabs, buttons and badges together: cards use the radius itself, buttons and tabs 2px less, badges 4px less. The outer popover frame here is the radius plus 4px; in the real app macOS draws that frame itself.</p>
+  </header>
+  <div class="toggle" role="group" aria-label="Preview theme">
+    <button id="t-light" aria-pressed="true">Light</button><button id="t-dark" aria-pressed="false">Dark</button>
+  </div>
+  <div class="grid" id="list"></div>
+</div>
+<script>
+const Z = {
+  light: { background:"oklch(1 0 0)", foreground:"oklch(0.141 0.005 285.823)", card:"oklch(1 0 0)", primary:"oklch(0.21 0.006 285.885)", "primary-foreground":"oklch(0.985 0 0)", secondary:"oklch(0.967 0.001 286.375)", muted:"oklch(0.967 0.001 286.375)", "muted-foreground":"oklch(0.552 0.016 285.938)", border:"oklch(0.92 0.004 286.32)", destructive:"oklch(0.577 0.245 27.325)" },
+  dark:  { background:"oklch(0.141 0.005 285.823)", foreground:"oklch(0.985 0 0)", card:"oklch(0.21 0.006 285.885)", primary:"oklch(0.92 0.004 286.32)", "primary-foreground":"oklch(0.21 0.006 285.885)", secondary:"oklch(0.274 0.006 286.033)", muted:"oklch(0.274 0.006 286.033)", "muted-foreground":"oklch(0.705 0.015 286.067)", border:"oklch(1 0 0 / 10%)", destructive:"oklch(0.704 0.191 22.216)" }
+};
+const RADII = [
+  [0, "0", "Sharp", "Square corners everywhere. Brutalist; clashes with the rounded macOS popover frame."],
+  [5, "0.3rem", "Tight", "Barely rounded. Dense, dev-tool feel."],
+  [8, "0.5rem", "Classic", "The shadcn v3 default. Crisp, very 'web'."],
+  [10, "0.625rem", "v4 default", "The current shadcn default. Close to macOS's own rounding.", true],
+  [12, "0.75rem", "Soft", "Friendlier, rounder controls."],
+  [16, "1rem", "Round", "Bubbly, almost iOS-like. Small badges become pills."],
+];
+const APPS = [["Xc","Xcode","2h 14m",39],["Sa","Safari","1h 32m",27],["Sl","Slack","48m",14],["Fi","Figma","31m",9]];
+function render(mode) {
+  const t = Z[mode];
+  const vars = Object.entries(t).map(([k,v]) => `--${k}:${v}`).join(";");
+  document.getElementById("list").innerHTML = RADII.map(([px, rem, name, note, rec]) => {
+    const r = Math.max(px, 0);
+    const apps = APPS.map(([ic,n,d,p]) => `<div class="app"><span class="icon" style="border-radius:${Math.max(r-4,0)}px">${ic}</span><span class="app-name">${n}</span><span class="app-time">${d}<em>${p}%</em></span><span class="bar"><i style="width:${p/39*100}%"></i></span></div>`).join("");
+    return `<section class="mode">
+      <div class="base-head"><h2>${px}px</h2><span class="tag${rec ? " rec" : ""}">${rem} · ${name}${rec ? " · recommended" : ""}</span><p>${note}</p></div>
+      <div class="pop" style="${vars};--radius:${r}px;border-radius:${r === 0 ? 0 : r + 4}px">
+        <div class="pop-top"><span class="pop-title">Screen time</span><span class="badge outline" style="border-radius:${Math.max(r-4,0)}px">Last 24 hours</span></div>
+        <div class="tabs"><span>6h</span><span>12h</span><span class="on">24h</span><span>1W</span><span>1M</span><span>6M</span></div>
+        <div class="card stats"><div><small>Active</small><b>5h 42m</b></div><div><small>Idle</small><b>48m</b></div><div><small>Away</small><b>9h 10m</b></div></div>
+        <div class="card apps">${apps}</div>
+        <div class="foot"><span class="muted">Updated just now</span><div class="btns"><button class="btn outline">Settings</button><button class="btn default">Export</button></div></div>
+      </div></section>`;
+  }).join("");
+}
+function setMode(m) {
+  document.getElementById("t-light").setAttribute("aria-pressed", m === "light");
+  document.getElementById("t-dark").setAttribute("aria-pressed", m === "dark");
+  render(m);
+  try { localStorage.setItem("radius-mode", m); } catch (e) {}
+}
+document.getElementById("t-light").onclick = () => setMode("light");
+document.getElementById("t-dark").onclick = () => setMode("dark");
+let start = "light";
+try { start = localStorage.getItem("radius-mode") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); } catch (e) {}
+setMode(start);
+</script>

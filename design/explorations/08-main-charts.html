@@ -1,0 +1,265 @@
+<title>Tracker Range Charts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one row per base color — label on top, light + dark popover previews side by side, token swatches under each. */
+:root {
+  --page-bg: oklch(0.985 0 0);
+  --page-fg: oklch(0.205 0 0);
+  --page-muted: oklch(0.556 0 0);
+  --page-border: oklch(0.922 0 0);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+}
+:root[data-theme="dark"] { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--font); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 40px 20px 64px; display: grid; gap: 48px; }
+header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; text-wrap: balance; }
+header p { margin: 0; color: var(--page-muted); max-width: 68ch; line-height: 1.55; }
+
+section.base { display: grid; gap: 16px; border-top: 1px solid var(--page-border); padding-top: 28px; }
+.base-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.base-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.base-head .tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--page-muted); border: 1px solid var(--page-border); padding: 2px 8px; border-radius: 999px; }
+.base-head p { margin: 0; color: var(--page-muted); font-size: 13px; flex-basis: 100%; }
+.grid { display: flex; flex-wrap: wrap; gap: 32px 24px; align-items: flex-start; }
+.scroller { overflow-x: auto; max-width: 100%; }
+.sizebox { display: grid; gap: 10px; min-width: 0; }
+.toggle { justify-self: start; display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--page-border); border-radius: 10px; }
+.toggle button { font: inherit; font-size: 13px; padding: 5px 14px; border-radius: 7px; border: 0; background: transparent; color: var(--page-muted); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--page-fg); color: var(--page-bg); }
+.toggle button:focus-visible { outline: 2px solid var(--page-muted); outline-offset: 2px; }
+.rec { color: var(--page-fg); border-color: var(--page-fg) !important; }
+.mode { display: grid; gap: 10px; min-width: 0; }
+.mode-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--page-muted); }
+
+/* ---- the mock popover, driven only by shadcn tokens ---- */
+.pop {
+  background: var(--background); color: var(--foreground);
+  border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px);
+  padding: 14px; display: grid; gap: 12px; font-size: 13px;
+}
+.pop-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pop-title { font-weight: 600; font-size: 14px; }
+.badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: calc(var(--radius) - 4px); background: var(--secondary); color: var(--foreground); border: 1px solid transparent; }
+.badge.outline { background: transparent; border-color: var(--border); }
+.tabs { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--muted); border-radius: var(--radius); padding: 3px; gap: 2px; }
+.tabs span { text-align: center; font-size: 12px; font-weight: 500; padding: 4px 0; border-radius: calc(var(--radius) - 2px); color: var(--muted-foreground); }
+.tabs span.on { background: var(--background); color: var(--foreground); box-shadow: 0 1px 2px oklch(0 0 0 / 0.08); border: 1px solid var(--border); padding: 3px 0; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); }
+.stats div { padding: 10px 12px; display: grid; gap: 2px; }
+.stats div + div { border-left: 1px solid var(--border); }
+.stats small { color: var(--muted-foreground); font-size: 11px; }
+.stats b { font-family: var(--num); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.apps { padding: 4px 12px; }
+.app { display: grid; grid-template-columns: 20px 1fr auto; gap: 4px 10px; align-items: center; padding: 8px 0; }
+.app + .app { border-top: 1px solid var(--border); }
+.icon { width: 20px; height: 20px; border-radius: 5px; background: var(--secondary); border: 1px solid var(--border); display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--muted-foreground); grid-row: span 2; }
+.app-name { font-weight: 500; }
+.app-time { font-variant-numeric: tabular-nums; font-family: var(--num); font-size: 12px; }
+.app-time em { font-style: normal; color: var(--muted-foreground); margin-left: 6px; }
+.bar { grid-column: 2 / 4; height: 6px; border-radius: 999px; background: color-mix(in oklch, var(--primary) 18%, transparent); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.foot .muted { color: var(--muted-foreground); font-size: 12px; }
+.btns { display: flex; gap: 6px; }
+.btn { font: inherit; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: calc(var(--radius) - 2px); border: 1px solid transparent; }
+.btn.default { background: var(--primary); color: var(--primary-foreground); }
+.btn.outline { background: var(--background); color: var(--foreground); border-color: var(--border); }
+.btn.ghost { background: transparent; color: var(--foreground); }
+.btn.destructive { background: var(--destructive); color: oklch(0.985 0 0); }
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.sw { display: grid; gap: 4px; font-size: 10.5px; color: var(--page-muted); min-width: 0; }
+.sw i { display: block; height: 22px; border-radius: 6px; border: 1px solid var(--page-border); }
+.sw span { overflow-wrap: anywhere; }
+</style>
+<style>
+.pop { font-family: 'JetBrains Mono', ui-monospace, monospace; --num: 'JetBrains Mono', ui-monospace, monospace; grid-template-rows: auto auto auto 1fr auto; box-sizing: border-box; }
+.pop .apps { overflow-y: auto; min-height: 0; }
+.app-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.compact { gap: 8px; padding: 10px; font-size: 12px; }
+.compact .app { padding: 4px 0; gap: 2px 8px; }
+.compact .stats div { padding: 6px 10px; }
+.compact .stats b { font-size: 14px; }
+.compact .bar { height: 4px; }
+.comfortable .app { padding: 10px 0; }
+.dims { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--page-muted); }
+</style>
+<style>
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 36px 24px; }
+.pop { height: auto !important; grid-template-rows: none; }
+.app { grid-template-columns: 20px 1fr auto; }
+.app-time .ram { color: var(--muted-foreground); margin-left: 8px; font-size: 11px; }
+.st-active { --c: var(--primary); } .st-idle { --c: color-mix(in oklch, var(--primary) 45%, var(--background)); } .st-away { --c: color-mix(in oklch, var(--primary) 14%, var(--background)); }
+.dot { width: 8px; height: 8px; border-radius: 2px; background: var(--c); display: inline-block; flex: none; }
+.stack { display: flex; height: 8px; border-radius: 999px; overflow: hidden; gap: 2px; }
+.stack i { background: var(--c); display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: var(--muted-foreground); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend b { color: var(--foreground); font-weight: 500; }
+.hero { padding: 12px; display: grid; gap: 10px; }
+.hero-num { display: flex; align-items: baseline; gap: 8px; }
+.hero-num b { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+.hero-num small { color: var(--muted-foreground); font-size: 11px; }
+.timeline { display: flex; height: 22px; border-radius: 4px; overflow: hidden; }
+.timeline i { display: block; background: var(--c); }
+.ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted-foreground); }
+.ringwrap { display: grid; grid-template-columns: 84px 1fr; gap: 14px; align-items: center; padding: 12px; }
+.ringlist { display: grid; gap: 6px; font-size: 12px; }
+.ringlist div { display: flex; align-items: center; gap: 8px; }
+.ringlist span.v { margin-left: auto; font-variant-numeric: tabular-nums; }
+.inline { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted-foreground); padding: 0 2px; }
+.inline b { color: var(--foreground); font-weight: 500; }
+.app.special .app-name { color: var(--muted-foreground); }
+.app.special .icon { background: transparent; border-style: dashed; }
+.colored .st-active { --c: oklch(0.646 0.222 41.116); } .colored .st-idle { --c: oklch(0.6 0.118 184.704); } .colored .st-away { --c: oklch(0.398 0.07 227.392); }
+.choice { font-size: 11px; color: var(--page-muted); }
+</style>
+<style>
+.grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); }
+.opt { display: grid; gap: 16px; border-top: 1px solid var(--page-border); padding-top: 28px; }
+.opt > .base-head h2 { font-size: 20px; }
+.app.click { cursor: pointer; grid-template-columns: 20px 1fr auto 12px; }
+.app.click .bar { grid-column: 2 / 4; }
+.chev { color: var(--muted-foreground); font-size: 12px; grid-row: span 2; }
+.back { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: 12px; color: var(--foreground); background: transparent; border: 0; padding: 4px 8px 4px 2px; border-radius: 6px; }
+.dhead { display: flex; align-items: center; gap: 10px; }
+.dhead .icon { width: 32px; height: 32px; font-size: 12px; border-radius: 8px; grid-row: auto; }
+.dhead .t { display: grid; gap: 2px; }
+.dhead .t b { font-size: 15px; }
+.dhead .t small { color: var(--muted-foreground); font-size: 11px; }
+.kv { display: grid; grid-template-columns: 1fr 1fr; }
+.kv div { padding: 8px 12px; display: grid; gap: 2px; }
+.kv div:nth-child(2n) { border-left: 1px solid var(--border); }
+.kv div:nth-child(n+3) { border-top: 1px solid var(--border); }
+.kv small { color: var(--muted-foreground); font-size: 11px; }
+.kv b { font-weight: 500; font-size: 13px; }
+.chart { padding: 12px 12px 8px; display: grid; gap: 6px; position: relative; }
+.chart-title { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-foreground); }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .grid-l { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .ax { fill: var(--muted-foreground); font-size: 9px; font-family: 'JetBrains Mono', monospace; }
+.chart rect.b { fill: var(--primary); }
+.chart rect.hit { fill: transparent; cursor: default; }
+.chart g:hover rect.b { fill: color-mix(in oklch, var(--primary) 70%, var(--background)); }
+.tip { position: absolute; pointer-events: none; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 11px; white-space: nowrap; box-shadow: 0 2px 8px oklch(0 0 0 / 0.08); transform: translate(-50%, -110%); }
+.sub { padding-left: 30px !important; grid-template-columns: 1fr auto !important; }
+.sub .bar { grid-column: 1 / 3; }
+.sub .app-name { color: var(--muted-foreground); font-size: 12px; }
+.sub .bar { height: 4px; }
+.win { width: 760px; border: 1px solid var(--border); border-radius: 12px; background: var(--background); color: var(--foreground); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; overflow: hidden; }
+.win-bar { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--border); background: var(--muted); }
+.win-bar i { width: 12px; height: 12px; border-radius: 50%; background: var(--border); display: block; }
+.win-bar span { margin-left: 12px; font-size: 12px; color: var(--muted-foreground); }
+.win-body { display: grid; grid-template-columns: 250px 1fr; min-height: 440px; }
+.win-side { border-right: 1px solid var(--border); padding: 8px; display: grid; align-content: start; gap: 2px; }
+.win-side div { display: flex; justify-content: space-between; padding: 7px 10px; border-radius: 8px; font-size: 12px; }
+.win-side div.on { background: var(--muted); font-weight: 500; }
+.win-side em { font-style: normal; color: var(--muted-foreground); }
+.win-main { padding: 16px; display: grid; gap: 12px; align-content: start; }
+.pair2 { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.arrow { align-self: center; color: var(--page-muted); font-size: 22px; }
+</style>
+<style>
+.rangegrid { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.fixed { height: 560px; grid-template-rows: auto auto auto auto 1fr !important; overflow: hidden; }
+.fixed.nochart { grid-template-rows: auto auto auto 1fr !important; }
+.fixed .apps { overflow: hidden; min-height: 0; }
+.chart rect.idle { fill: color-mix(in oklch, var(--primary) 40%, var(--background)); }
+.ringwrap.slim { grid-template-columns: 64px 1fr; padding: 10px 12px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Charts in the main popover</h1>
+    <p>The popover is fixed at 560pt, so any chart above the list pushes apps down. Each option is shown for three ranges (24h, 1W, 6M) at real size. Chart buckets change with the range: 15 min for 6h, 30 min for 12h, hourly for 24h, daily for 1W and 1M, weekly for 6M. Hover the bars for tooltips. The app detail view keeps its own chart either way.</p>
+  </header>
+  <div class="toggle" role="group" aria-label="Preview theme">
+    <button id="t-light" aria-pressed="true">Light</button><button id="t-dark" aria-pressed="false">Dark</button>
+  </div>
+  <div id="list" style="display:grid;gap:48px"></div>
+</div>
+<script>
+const Z = {
+  light: { background:"oklch(1 0 0)", foreground:"oklch(0.141 0.005 285.823)", card:"oklch(1 0 0)", primary:"oklch(0.21 0.006 285.885)", "primary-foreground":"oklch(0.985 0 0)", secondary:"oklch(0.967 0.001 286.375)", muted:"oklch(0.967 0.001 286.375)", "muted-foreground":"oklch(0.552 0.016 285.938)", border:"oklch(0.92 0.004 286.32)" },
+  dark:  { background:"oklch(0.141 0.005 285.823)", foreground:"oklch(0.985 0 0)", card:"oklch(0.21 0.006 285.885)", primary:"oklch(0.92 0.004 286.32)", "primary-foreground":"oklch(0.21 0.006 285.885)", secondary:"oklch(0.274 0.006 286.033)", muted:"oklch(0.274 0.006 286.033)", "muted-foreground":"oklch(0.705 0.015 286.067)", border:"oklch(1 0 0 / 10%)" }
+};
+const vars = m => Object.entries(Z[m]).map(([k,v]) => `--${k}:${v}`).join(";");
+const fmt = m => m >= 60 ? `${Math.floor(m/60)}h ${String(m%60).padStart(2,"0")}m` : `${m}m`;
+const RANGES = {
+  "24h": { tab: 2, badge: "Last 24h", act: 342, idle: 48, away: 1050, unit: "hour", max: 60, yt: [0,30,60],
+    labels: Array.from({length:24}, (_, i) => String((15+i)%24).padStart(2,"0") + ":00"), ticks: [0,6,12,18,23], tickFmt: l => l.slice(0,2),
+    act_: [22,46,30,5,0,0,0,0,0,0,0,0,0,0,0,0,0,10,48,52,41,38,30,20], idle_: [4,6,5,2,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,2,6,8,5,3],
+    apps: [["Xc","Xcode",134,"2.1 GB"],["Ch","Google Chrome",92,"3.4 GB"],["Sl","Slack",48,"612 MB"],["Fi","Figma",31,""],["Te","Terminal",27,"88 MB"],["Mu","Music",10,"140 MB"]] },
+  "1W": { tab: 3, badge: "Sep 27 – Oct 3", act: 2289, idle: 330, away: 7461, unit: "day", max: 480, yt: [0,240,480],
+    labels: ["Sat 27","Sun 28","Mon 29","Tue 30","Wed 1","Thu 2","Fri 3"], ticks: [0,1,2,3,4,5,6], tickFmt: l => l.slice(0,3),
+    act_: [95,40,410,452,398,512,342], idle_: [20,10,60,55,70,67,48],
+    apps: [["Xc","Xcode",1092,"2.1 GB"],["Ch","Google Chrome",801,"3.4 GB"],["Sl","Slack",216,"612 MB"],["Te","Terminal",92,"88 MB"],["Fi","Figma",60,""],["Mu","Music",28,"140 MB"]] },
+  "6M": { tab: 5, badge: "Apr 4 – Oct 3", act: 48000, idle: 7200, away: 206880, unit: "week", max: 3000, yt: [0,1500,3000],
+    labels: Array.from({length:26}, (_, i) => { const d = new Date(2026, 3, 4 + i*7); return d.toLocaleDateString("en-US", {month:"short", day:"numeric"}); }), ticks: [0,9,17,25], tickFmt: l => l.split(" ")[0],
+    act_: [1800,2100,1950,2300,2200,800,600,2400,2500,2350,2280,2600,2450,1200,2300,2400,2550,2200,2380,2500,2610,2420,2050,2290,2350,1940].map(v=>v), idle_: Array.from({length:26}, (_, i) => 200 + (i*37)%180),
+    apps: [["Xc","Xcode",21400,"2.1 GB"],["Ch","Google Chrome",15100,"3.4 GB"],["Sl","Slack",5200,"612 MB"],["Te","Terminal",2900,"88 MB"],["Fi","Figma",2100,""],["Mu","Music",1300,"140 MB"]] },
+};
+function ring(R, slim) {
+  const TOT = R.act + R.idle + R.away, r = slim ? 26 : 34, sz = slim ? 64 : 84, c = sz/2, C = 2*Math.PI*r; let off = 0;
+  const arcs = [["active",R.act],["idle",R.idle],["away",R.away]].map(([st,m]) => { const len = m/TOT*C; const a = `<circle class="st-${st}" r="${r}" cx="${c}" cy="${c}" fill="none" stroke="var(--c)" stroke-width="${slim ? 8 : 10}" stroke-dasharray="${Math.max(len-2,0)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 ${c} ${c})"/>`; off += len; return a; }).join("");
+  return `<div class="card ringwrap${slim ? " slim" : ""}"><svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" aria-hidden="true">${arcs}<text x="${c}" y="${c+4}" text-anchor="middle" font-size="${slim ? 11 : 12}" font-weight="600" fill="var(--foreground)" font-family="JetBrains Mono, monospace">${Math.round(R.act/TOT*100)}%</text></svg><div class="ringlist"><div class="st-active"><i class="dot"></i>Active<span class="v">${fmt(R.act)}</span></div><div class="st-idle"><i class="dot"></i>Idle<span class="v">${fmt(R.idle)}</span></div><div class="st-away"><i class="dot"></i>Away<span class="v">${fmt(R.away)}</span></div></div></div>`;
+}
+function chart(R, stacked) {
+  const n = R.act_.length, W = 324, H = 84, pad = 30, bw = (W - pad) / n;
+  const y = v => H - 14 - v / R.max * (H - 20);
+  const yl = v => v === 0 ? "0" : (v >= 60 ? `${v/60}h` : `${v}m`);
+  let g = R.yt.map(v => `<line class="grid-l" x1="${pad}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="0" y="${y(v)+3}">${yl(v)}</text>`).join("");
+  g += R.act_.map((a, i) => { const x = pad + i*bw, ia = stacked ? R.idle_[i] : 0;
+    const ha = y(0) - y(Math.min(a, R.max)), hi = stacked ? y(0) - y(Math.min(a + ia, R.max)) - ha : 0;
+    const tip = `${R.labels[i]} · ${fmt(a)} active${stacked ? ` · ${fmt(ia)} idle` : ""}`;
+    return `<g data-tip="${tip}"><rect class="hit" x="${x}" y="0" width="${bw}" height="${H-14}"/>${a ? `<rect class="b" x="${x+1}" y="${y(0)-ha}" width="${Math.max(bw-2,1)}" height="${ha}" rx="${n > 20 ? 1 : 2}"/>` : ""}${hi > 1 ? `<rect class="b idle" x="${x+1}" y="${y(0)-ha-hi}" width="${Math.max(bw-2,1)}" height="${Math.max(hi-2,0)}" rx="1"/>` : ""}</g>`; }).join("");
+  g += R.ticks.map(i => `<text class="ax" x="${pad + i*bw + bw/2}" y="${H-2}" text-anchor="middle">${R.tickFmt(R.labels[i])}</text>`).join("");
+  return `<div class="card chart"><div class="chart-title"><span>${stacked ? "Active + idle" : "Active"}</span><span>per ${R.unit}</span></div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Active time per ${R.unit}">${g}</svg></div>`;
+}
+const OPTIONS = [
+  ["A", "Ring only", "No chart in the main view. The most apps visible (about 6). Charts live only in the app detail view.", (R) => ring(R), false],
+  ["B", "Ring + active bar chart", "A compact ring with a bar chart of active time per bucket below it. Shows patterns over time; about 3–4 apps visible before scrolling.", (R) => ring(R, true) + chart(R, false), true],
+  ["C", "Ring + stacked active/idle bars", "Like B, but each bar also stacks idle time (lighter tone) on top of active.", (R) => ring(R, true) + chart(R, true)],
+  ["D", "Chart replaces ring for 1W+", "The ring for 6h–24h; for 1W, 1M and 6M the ring becomes a one-line total and the chart takes its place. Keeps the list long on short ranges and adds trends on long ones.", (R, k) => k === "24h" ? ring(R) : `<div class="legend" style="padding:0 2px"><span class="st-active"><i class="dot"></i>Active <b>${fmt(R.act)}</b></span><span class="st-idle"><i class="dot"></i>Idle <b>${fmt(R.idle)}</b></span><span class="st-away"><i class="dot"></i>Away <b>${fmt(R.away)}</b></span></div>` + chart(R, false)],
+];
+function pop(m, k, body, hasChart) {
+  const R = RANGES[k];
+  const tabs = `<div class="tabs">${["6h","12h","24h","1W","1M","6M"].map((t, i) => `<span${i === R.tab ? ' class="on"' : ""}>${t}</span>`).join("")}</div>`;
+  const apps = R.apps.map(([ic, n, mm, ram]) => `<div class="app click"><span class="icon" style="border-radius:6px">${ic}</span><span class="app-name">${n}</span><span class="app-time">${fmt(mm)}<em>${Math.round(mm/R.act*100)}%</em><span class="ram">${ram || "—"}</span></span><span class="chev">›</span><span class="bar"><i style="width:${mm/R.act*100}%"></i></span></div>`).join("");
+  return `<div class="sizebox"><div class="dims">${k}</div><div class="scroller"><div class="pop comfortable fixed${hasChart ? "" : " nochart"}" style="${vars(m)};--radius:10px;border-radius:14px;width:380px;max-width:100%;box-sizing:border-box">
+    <div class="pop-top"><span class="pop-title">Screen time</span><span class="badge outline" style="border-radius:6px">${R.badge}</span></div>${tabs}${body}<div class="card apps">${apps}</div></div></div></div>`;
+}
+function render(m) {
+  document.getElementById("list").innerHTML = OPTIONS.map(([id, name, note, f, rec]) => `
+    <section class="opt"><div class="base-head"><h2>${id} · ${name}</h2>${rec ? '<span class="tag rec">recommended</span>' : ""}<p>${note}</p></div>
+    <div class="rangegrid">${["24h","1W","6M"].map(k => { const b = f(RANGES[k], k); return pop(m, k, b, b.includes("chart") || b.includes("legend")); }).join("")}</div></section>`).join("");
+  wireTips();
+}
+function wireTips() {
+  document.querySelectorAll(".chart").forEach(c => {
+    const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; c.appendChild(tip);
+    c.querySelectorAll("g[data-tip]").forEach(g => {
+      g.addEventListener("mouseenter", () => { const r = g.getBoundingClientRect(), cr = c.getBoundingClientRect(); tip.textContent = g.dataset.tip; tip.style.left = (r.left - cr.left + r.width/2) + "px"; tip.style.top = (r.top - cr.top + 20) + "px"; tip.hidden = false; });
+      g.addEventListener("mouseleave", () => tip.hidden = true);
+    });
+  });
+}
+function setMode(m) {
+  document.getElementById("t-light").setAttribute("aria-pressed", m === "light");
+  document.getElementById("t-dark").setAttribute("aria-pressed", m === "dark");
+  render(m);
+  try { localStorage.setItem("charts-mode", m); } catch (e) {}
+}
+document.getElementById("t-light").onclick = () => setMode("light");
+document.getElementById("t-dark").onclick = () => setMode("dark");
+let start = "light";
+try { start = localStorage.getItem("charts-mode") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); } catch (e) {}
+setMode(start);
+</script>

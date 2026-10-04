@@ -1,0 +1,272 @@
+<title>TikTik RAM in Rows</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one row per base color — label on top, light + dark popover previews side by side, token swatches under each. */
+:root {
+  --page-bg: oklch(0.985 0 0);
+  --page-fg: oklch(0.205 0 0);
+  --page-muted: oklch(0.556 0 0);
+  --page-border: oklch(0.922 0 0);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+}
+:root[data-theme="dark"] { --page-bg: oklch(0.17 0 0); --page-fg: oklch(0.95 0 0); --page-muted: oklch(0.65 0 0); --page-border: oklch(1 0 0 / 12%); color-scheme: dark; }
+
+body { background: var(--page-bg); color: var(--page-fg); font-family: var(--font); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 40px 20px 64px; display: grid; gap: 48px; }
+header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; text-wrap: balance; }
+header p { margin: 0; color: var(--page-muted); max-width: 68ch; line-height: 1.55; }
+
+section.base { display: grid; gap: 16px; border-top: 1px solid var(--page-border); padding-top: 28px; }
+.base-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.base-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.base-head .tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--page-muted); border: 1px solid var(--page-border); padding: 2px 8px; border-radius: 999px; }
+.base-head p { margin: 0; color: var(--page-muted); font-size: 13px; flex-basis: 100%; }
+.grid { display: flex; flex-wrap: wrap; gap: 32px 24px; align-items: flex-start; }
+.scroller { overflow-x: auto; max-width: 100%; }
+.sizebox { display: grid; gap: 10px; min-width: 0; }
+.toggle { justify-self: start; display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--page-border); border-radius: 10px; }
+.toggle button { font: inherit; font-size: 13px; padding: 5px 14px; border-radius: 7px; border: 0; background: transparent; color: var(--page-muted); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--page-fg); color: var(--page-bg); }
+.toggle button:focus-visible { outline: 2px solid var(--page-muted); outline-offset: 2px; }
+.rec { color: var(--page-fg); border-color: var(--page-fg) !important; }
+.mode { display: grid; gap: 10px; min-width: 0; }
+.mode-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--page-muted); }
+
+/* ---- the mock popover, driven only by shadcn tokens ---- */
+.pop {
+  background: var(--background); color: var(--foreground);
+  border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px);
+  padding: 14px; display: grid; gap: 12px; font-size: 13px;
+}
+.pop-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pop-title { font-weight: 600; font-size: 14px; }
+.badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: calc(var(--radius) - 4px); background: var(--secondary); color: var(--foreground); border: 1px solid transparent; }
+.badge.outline { background: transparent; border-color: var(--border); }
+.tabs { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--muted); border-radius: var(--radius); padding: 3px; gap: 2px; }
+.tabs span { text-align: center; font-size: 12px; font-weight: 500; padding: 4px 0; border-radius: calc(var(--radius) - 2px); color: var(--muted-foreground); }
+.tabs span.on { background: var(--background); color: var(--foreground); box-shadow: 0 1px 2px oklch(0 0 0 / 0.08); border: 1px solid var(--border); padding: 3px 0; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); }
+.stats div { padding: 10px 12px; display: grid; gap: 2px; }
+.stats div + div { border-left: 1px solid var(--border); }
+.stats small { color: var(--muted-foreground); font-size: 11px; }
+.stats b { font-family: var(--num); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.apps { padding: 4px 12px; }
+.app { display: grid; grid-template-columns: 20px 1fr auto; gap: 4px 10px; align-items: center; padding: 8px 0; }
+.app + .app { border-top: 1px solid var(--border); }
+.icon { width: 20px; height: 20px; border-radius: 5px; background: var(--secondary); border: 1px solid var(--border); display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--muted-foreground); grid-row: span 2; }
+.app-name { font-weight: 500; }
+.app-time { font-variant-numeric: tabular-nums; font-family: var(--num); font-size: 12px; }
+.app-time em { font-style: normal; color: var(--muted-foreground); margin-left: 6px; }
+.bar { grid-column: 2 / 4; height: 6px; border-radius: 999px; background: color-mix(in oklch, var(--primary) 18%, transparent); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.foot .muted { color: var(--muted-foreground); font-size: 12px; }
+.btns { display: flex; gap: 6px; }
+.btn { font: inherit; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: calc(var(--radius) - 2px); border: 1px solid transparent; }
+.btn.default { background: var(--primary); color: var(--primary-foreground); }
+.btn.outline { background: var(--background); color: var(--foreground); border-color: var(--border); }
+.btn.ghost { background: transparent; color: var(--foreground); }
+.btn.destructive { background: var(--destructive); color: oklch(0.985 0 0); }
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.sw { display: grid; gap: 4px; font-size: 10.5px; color: var(--page-muted); min-width: 0; }
+.sw i { display: block; height: 22px; border-radius: 6px; border: 1px solid var(--page-border); }
+.sw span { overflow-wrap: anywhere; }
+</style>
+<style>
+.pop { font-family: 'JetBrains Mono', ui-monospace, monospace; --num: 'JetBrains Mono', ui-monospace, monospace; grid-template-rows: auto auto auto 1fr auto; box-sizing: border-box; }
+.pop .apps { overflow-y: auto; min-height: 0; }
+.app-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.compact { gap: 8px; padding: 10px; font-size: 12px; }
+.compact .app { padding: 4px 0; gap: 2px 8px; }
+.compact .stats div { padding: 6px 10px; }
+.compact .stats b { font-size: 14px; }
+.compact .bar { height: 4px; }
+.comfortable .app { padding: 10px 0; }
+.dims { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: var(--page-muted); }
+</style>
+<style>
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 36px 24px; }
+.pop { height: auto !important; grid-template-rows: none; }
+.app { grid-template-columns: 20px 1fr auto; }
+.app-time .ram { color: var(--muted-foreground); margin-left: 8px; font-size: 11px; }
+.st-active { --c: var(--primary); } .st-idle { --c: color-mix(in oklch, var(--primary) 45%, var(--background)); } .st-away { --c: color-mix(in oklch, var(--primary) 14%, var(--background)); }
+.dot { width: 8px; height: 8px; border-radius: 2px; background: var(--c); display: inline-block; flex: none; }
+.stack { display: flex; height: 8px; border-radius: 999px; overflow: hidden; gap: 2px; }
+.stack i { background: var(--c); display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: var(--muted-foreground); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend b { color: var(--foreground); font-weight: 500; }
+.hero { padding: 12px; display: grid; gap: 10px; }
+.hero-num { display: flex; align-items: baseline; gap: 8px; }
+.hero-num b { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+.hero-num small { color: var(--muted-foreground); font-size: 11px; }
+.timeline { display: flex; height: 22px; border-radius: 4px; overflow: hidden; }
+.timeline i { display: block; background: var(--c); }
+.ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted-foreground); }
+.ringwrap { display: grid; grid-template-columns: 84px 1fr; gap: 14px; align-items: center; padding: 12px; }
+.ringlist { display: grid; gap: 6px; font-size: 12px; }
+.ringlist div { display: flex; align-items: center; gap: 8px; }
+.ringlist span.v { margin-left: auto; font-variant-numeric: tabular-nums; }
+.inline { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted-foreground); padding: 0 2px; }
+.inline b { color: var(--foreground); font-weight: 500; }
+.app.special .app-name { color: var(--muted-foreground); }
+.app.special .icon { background: transparent; border-style: dashed; }
+.colored .st-active { --c: oklch(0.646 0.222 41.116); } .colored .st-idle { --c: oklch(0.6 0.118 184.704); } .colored .st-away { --c: oklch(0.398 0.07 227.392); }
+.choice { font-size: 11px; color: var(--page-muted); }
+</style>
+<style>
+.grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); }
+.opt { display: grid; gap: 16px; border-top: 1px solid var(--page-border); padding-top: 28px; }
+.opt > .base-head h2 { font-size: 20px; }
+.app.click { cursor: pointer; grid-template-columns: 20px 1fr auto 12px; }
+.app.click .bar { grid-column: 2 / 4; }
+.chev { color: var(--muted-foreground); font-size: 12px; grid-row: span 2; }
+.back { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: 12px; color: var(--foreground); background: transparent; border: 0; padding: 4px 8px 4px 2px; border-radius: 6px; }
+.dhead { display: flex; align-items: center; gap: 10px; }
+.dhead .icon { width: 32px; height: 32px; font-size: 12px; border-radius: 8px; grid-row: auto; }
+.dhead .t { display: grid; gap: 2px; }
+.dhead .t b { font-size: 15px; }
+.dhead .t small { color: var(--muted-foreground); font-size: 11px; }
+.kv { display: grid; grid-template-columns: 1fr 1fr; }
+.kv div { padding: 8px 12px; display: grid; gap: 2px; }
+.kv div:nth-child(2n) { border-left: 1px solid var(--border); }
+.kv div:nth-child(n+3) { border-top: 1px solid var(--border); }
+.kv small { color: var(--muted-foreground); font-size: 11px; }
+.kv b { font-weight: 500; font-size: 13px; }
+.chart { padding: 12px 12px 8px; display: grid; gap: 6px; position: relative; }
+.chart-title { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-foreground); }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .grid-l { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .ax { fill: var(--muted-foreground); font-size: 9px; font-family: 'JetBrains Mono', monospace; }
+.chart rect.b { fill: var(--primary); }
+.chart rect.hit { fill: transparent; cursor: default; }
+.chart g:hover rect.b { fill: color-mix(in oklch, var(--primary) 70%, var(--background)); }
+.tip { position: absolute; pointer-events: none; background: var(--background); color: var(--foreground); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 11px; white-space: nowrap; box-shadow: 0 2px 8px oklch(0 0 0 / 0.08); transform: translate(-50%, -110%); }
+.sub { padding-left: 30px !important; grid-template-columns: 1fr auto !important; }
+.sub .bar { grid-column: 1 / 3; }
+.sub .app-name { color: var(--muted-foreground); font-size: 12px; }
+.sub .bar { height: 4px; }
+.win { width: 760px; border: 1px solid var(--border); border-radius: 12px; background: var(--background); color: var(--foreground); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; overflow: hidden; }
+.win-bar { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--border); background: var(--muted); }
+.win-bar i { width: 12px; height: 12px; border-radius: 50%; background: var(--border); display: block; }
+.win-bar span { margin-left: 12px; font-size: 12px; color: var(--muted-foreground); }
+.win-body { display: grid; grid-template-columns: 250px 1fr; min-height: 440px; }
+.win-side { border-right: 1px solid var(--border); padding: 8px; display: grid; align-content: start; gap: 2px; }
+.win-side div { display: flex; justify-content: space-between; padding: 7px 10px; border-radius: 8px; font-size: 12px; }
+.win-side div.on { background: var(--muted); font-weight: 500; }
+.win-side em { font-style: normal; color: var(--muted-foreground); }
+.win-main { padding: 16px; display: grid; gap: 12px; align-content: start; }
+.pair2 { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.arrow { align-self: center; color: var(--page-muted); font-size: 22px; }
+</style>
+<style>
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 36px 24px; }
+.r { display: grid; grid-template-columns: 20px minmax(0,1fr) auto 12px; gap: 4px 10px; align-items: center; padding: 10px 0; }
+.r + .r { border-top: 1px solid var(--border); }
+.r .icon { grid-row: span 2; }
+.r .chev { grid-row: span 2; }
+.r .nm { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.r .tm { font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.r .tm em { font-style: normal; color: var(--muted-foreground); margin-left: 6px; }
+.r .bar { grid-column: 2 / 4; }
+.r .line2 { grid-column: 2 / 4; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+.r .line2 .bar { grid-column: auto; }
+.mute { color: var(--muted-foreground); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rb { font-size: 10.5px; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--border); color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 6px; vertical-align: 1px; font-weight: 400; }
+.rb.hot { color: var(--foreground); border-color: var(--foreground); }
+.rb.solid { background: var(--secondary); border-color: transparent; color: var(--foreground); }
+.meter { display: inline-flex; align-items: center; gap: 6px; }
+.meter s { display: inline-block; width: 28px; height: 4px; border-radius: 999px; background: color-mix(in oklch, var(--primary) 18%, transparent); position: relative; overflow: hidden; text-decoration: none; }
+.meter s i { position: absolute; inset: 0 auto 0 0; background: var(--muted-foreground); border-radius: inherit; }
+.meter.hot s i { background: var(--foreground); }
+.chip { display: inline-flex; align-items: center; gap: 4px; }
+.chip svg { opacity: 0.7; }
+.cols { display: grid; grid-template-columns: 20px minmax(0,1fr) 62px 34px 56px 12px; gap: 4px 10px; align-items: center; }
+.cols.h { font-size: 10px; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 0 6px; border-bottom: 1px solid var(--border); }
+.cols .n { text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; white-space: nowrap; }
+.cols .n.m { color: var(--muted-foreground); }
+.cols .bar { grid-column: 2 / 6; }
+.cols.row { padding: 10px 0; } .cols.row + .cols.row { border-top: 1px solid var(--border); }
+.cols .icon, .cols .chev { grid-row: span 2; }
+.hovered { background: var(--muted); margin: 0 -8px; padding-left: 8px !important; padding-right: 8px !important; border-radius: 8px; }
+.sumram { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-foreground); padding: 0 2px; }
+.sumram b { color: var(--foreground); font-weight: 500; }
+.tag.hotlegend { text-transform: none; letter-spacing: 0; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>RAM in each app row</h1>
+    <p>Seven ways to show live memory per app in the 380pt popover, all with the same 24h data. RAM is the current footprint, including helper processes, read only while the popover is open. Apps that aren't running (Figma here) show a dash. Variants marked "hot" draw apps using 2 GB or more in full foreground ink, and everything else in muted gray, so heavy apps stand out without adding color.</p>
+  </header>
+  <div class="toggle" role="group" aria-label="Preview theme">
+    <button id="t-light" aria-pressed="true">Light</button><button id="t-dark" aria-pressed="false">Dark</button>
+  </div>
+  <div class="grid" id="list"></div>
+</div>
+<script>
+const Z = {
+  light: { background:"oklch(1 0 0)", foreground:"oklch(0.141 0.005 285.823)", card:"oklch(1 0 0)", primary:"oklch(0.21 0.006 285.885)", "primary-foreground":"oklch(0.985 0 0)", secondary:"oklch(0.967 0.001 286.375)", muted:"oklch(0.967 0.001 286.375)", "muted-foreground":"oklch(0.552 0.016 285.938)", border:"oklch(0.92 0.004 286.32)" },
+  dark:  { background:"oklch(0.141 0.005 285.823)", foreground:"oklch(0.985 0 0)", card:"oklch(0.21 0.006 285.885)", primary:"oklch(0.92 0.004 286.32)", "primary-foreground":"oklch(0.21 0.006 285.885)", secondary:"oklch(0.274 0.006 286.033)", muted:"oklch(0.274 0.006 286.033)", "muted-foreground":"oklch(0.705 0.015 286.067)", border:"oklch(1 0 0 / 10%)" }
+};
+const vars = m => Object.entries(Z[m]).map(([k,v]) => `--${k}:${v}`).join(";");
+const ACT = 342, IDLE = 48, AWAY = 1050, TOT = ACT + IDLE + AWAY, SYS_GB = 16;
+// [icon, name, active min, RAM in MB or null]
+const APPS = [["Xc","Xcode",134,2150],["Ch","Google Chrome",92,3480],["Sl","Slack",48,612],["Fi","Figma",31,null],["Te","Terminal",27,88],["Mu","Music",10,141]];
+const fmt = m => m >= 60 ? `${Math.floor(m/60)}h ${String(m%60).padStart(2,"0")}m` : `${m}m`;
+const ram = mb => mb == null ? "—" : mb >= 1024 ? `${(mb/1024).toFixed(1)} GB` : `${mb} MB`;
+const hot = mb => mb != null && mb >= 2048;
+const pct = m => Math.round(m/ACT*100);
+const chipIcon = `<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5"/><path d="M6 1v2M10 1v2M6 13v2M10 13v2M1 6h2M1 10h2M13 6h2M13 10h2"/></svg>`;
+function ring() {
+  const r = 34, C = 2*Math.PI*r; let off = 0;
+  const arcs = [["active",ACT],["idle",IDLE],["away",AWAY]].map(([st,m]) => { const len = m/TOT*C; const a = `<circle class="st-${st}" r="${r}" cx="42" cy="42" fill="none" stroke="var(--c)" stroke-width="10" stroke-dasharray="${Math.max(len-2,0)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 42 42)"/>`; off += len; return a; }).join("");
+  return `<div class="card ringwrap"><svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">${arcs}<text x="42" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="var(--foreground)" font-family="JetBrains Mono, monospace">${Math.round(ACT/TOT*100)}%</text></svg><div class="ringlist"><div class="st-active"><i class="dot"></i>Active<span class="v">5h 42m</span></div><div class="st-idle"><i class="dot"></i>Idle<span class="v">48m</span></div><div class="st-away"><i class="dot"></i>Away<span class="v">17h 30m</span></div></div></div>`;
+}
+const bar = m => `<span class="bar"><i style="width:${m/ACT*100}%"></i></span>`;
+const ic = i => `<span class="icon" style="border-radius:6px">${i}</span>`;
+const chev = `<span class="chev">›</span>`;
+const V = [
+  ["A", "Inline, after the percentage", "What the earlier mockups used: RAM as a third muted number on the first line. Compact, but three numbers in a row compete, and long app names truncate sooner.",
+    () => APPS.map(([i,n,m,r]) => `<div class="r">${ic(i)}<span class="nm">${n}</span><span class="tm">${fmt(m)}<em>${pct(m)}%</em><span class="mute" style="margin-left:8px">${ram(r)}</span></span>${chev}${bar(m)}</div>`).join("")],
+  ["B", "Second line, right of the bar", "Time and % stay on line 1; RAM sits at the end of the bar line. Each line has one job (usage above, memory below), and names get full width.",
+    () => APPS.map(([i,n,m,r]) => `<div class="r">${ic(i)}<span class="nm">${n}</span><span class="tm">${fmt(m)}<em>${pct(m)}%</em></span>${chev}<span class="line2">${bar(m)}<span class="mute" style="min-width:46px;text-align:right">${ram(r)}</span></span></div>`).join(""), true],
+  ["C", "Badge next to the name", "An outline shadcn Badge after the app name. Reads as a property of the app rather than another metric. 'Hot' apps (2 GB or more) get a foreground border.",
+    () => APPS.map(([i,n,m,r]) => `<div class="r">${ic(i)}<span class="nm">${n}${r != null ? `<span class="rb${hot(r) ? " hot" : ""}">${ram(r)}</span>` : ""}</span><span class="tm">${fmt(m)}<em>${pct(m)}%</em></span>${chev}${bar(m)}</div>`).join("")],
+  ["D", "Second line + mini memory meter", "Like B, plus a tiny meter showing the app's share of your Mac's 16 GB. Hot apps draw the meter in full ink. Gives a sense of scale at a glance.",
+    () => APPS.map(([i,n,m,r]) => `<div class="r">${ic(i)}<span class="nm">${n}</span><span class="tm">${fmt(m)}<em>${pct(m)}%</em></span>${chev}<span class="line2">${bar(m)}<span class="mute meter${hot(r) ? " hot" : ""}" style="min-width:86px;justify-content:flex-end">${r != null ? `<s><i style="width:${Math.min(100, r/(SYS_GB*1024)*100)}%"></i></s>` : ""}${ram(r)}</span></span></div>`).join("")],
+  ["E", "Columns with headers", "A small table: Time, %, RAM, each right-aligned under a header. The most scannable for comparing RAM between apps, but the most 'spreadsheet'.",
+    () => `<div class="cols h"><span></span><span>App</span><span class="n" style="font-size:10px">Time</span><span class="n" style="font-size:10px">%</span><span class="n" style="font-size:10px">RAM</span><span></span></div>` + APPS.map(([i,n,m,r]) => `<div class="cols row">${ic(i)}<span class="nm" style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n}</span><span class="n">${fmt(m)}</span><span class="n m">${pct(m)}%</span><span class="n${hot(r) ? "" : " m"}">${ram(r)}</span>${chev}${bar(m)}</div>`).join("")],
+  ["F", "On hover only", "Rows look clean (time and % only). Hovering a row swaps the % for its RAM (shown on Google Chrome here). Zero clutter, but you can't compare RAM across apps at a glance.",
+    () => APPS.map(([i,n,m,r], k) => `<div class="r${k === 1 ? " hovered" : ""}">${ic(i)}<span class="nm">${n}</span><span class="tm">${fmt(m)}<em>${k === 1 ? `<span class="chip">${chipIcon}${ram(r)}</span>` : pct(m) + "%"}</em></span>${chev}${bar(m)}</div>`).join("")],
+  ["G", "B + total RAM line", "B, plus one line above the list summing RAM for the listed apps that are running, against your Mac's total.",
+    () => `<div class="sumram" style="padding:8px 0 2px"><span>Memory now</span><span><b>6.4 GB</b> of 16 GB</span></div>` + APPS.map(([i,n,m,r]) => `<div class="r">${ic(i)}<span class="nm">${n}</span><span class="tm">${fmt(m)}<em>${pct(m)}%</em></span>${chev}<span class="line2">${bar(m)}<span class="mute" style="min-width:46px;text-align:right${hot(r) ? ";color:var(--foreground)" : ""}">${ram(r)}</span></span></div>`).join("")],
+];
+function render(mode) {
+  document.getElementById("list").innerHTML = V.map(([id, name, note, rows, rec]) => `
+    <section class="sizebox"><div class="base-head"><h2>${id} · ${name}</h2>${rec ? '<span class="tag rec">recommended</span>' : ""}<p>${note}</p></div>
+      <div class="scroller"><div class="pop comfortable" style="${vars(mode)};--radius:10px;border-radius:14px;width:380px;max-width:100%;box-sizing:border-box">
+        <div class="pop-top"><span class="pop-title">TikTik</span><span class="badge outline" style="border-radius:6px">Last 24h</span></div>
+        <div class="tabs"><span>6h</span><span>12h</span><span class="on">24h</span><span>1W</span><span>1M</span><span>6M</span></div>
+        ${ring()}<div class="card apps">${rows()}</div>
+      </div></div></section>`).join("");
+}
+function setMode(m) {
+  document.getElementById("t-light").setAttribute("aria-pressed", m === "light");
+  document.getElementById("t-dark").setAttribute("aria-pressed", m === "dark");
+  render(m);
+  try { localStorage.setItem("ram-mode", m); } catch (e) {}
+}
+document.getElementById("t-light").onclick = () => setMode("light");
+document.getElementById("t-dark").onclick = () => setMode("dark");
+let start = "light";
+try { start = localStorage.getItem("ram-mode") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); } catch (e) {}
+setMode(start);
+</script>
