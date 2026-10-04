@@ -3,8 +3,9 @@ import CoreGraphics
 import IOKit.pwr_mgt
 import TikTikCore
 
-/// Reports the frontmost app (SPEC 2.3). TikTik itself is ignored, so opening its own windows
-/// never changes what's being tracked.
+/// Reports the frontmost app (SPEC 2.3). Only regular apps (with a Dock icon) count: TikTik itself,
+/// system dialogs and background agents that briefly take focus (UserNotificationCenter, the keychain
+/// prompt, menu-bar utilities) are ignored, so the time stays with the app you were using.
 @MainActor
 final class FrontmostAppMonitor {
     var onChange: ((AppIdentity?) -> Void)?
@@ -27,10 +28,15 @@ final class FrontmostAppMonitor {
     }
 
     private func update(_ running: NSRunningApplication?) {
-        guard let running, running.bundleIdentifier != Self.ownBundleID else { return }
+        guard let running, Self.counts(running) else { return }
         current = Self.identity(of: running)
         currentPID = running.processIdentifier
         onChange?(current)
+    }
+
+    /// Whether time in this app is recorded as that app.
+    static func counts(_ app: NSRunningApplication) -> Bool {
+        app.activationPolicy == .regular && app.bundleIdentifier != ownBundleID
     }
 
     static func identity(of app: NSRunningApplication) -> AppIdentity? {

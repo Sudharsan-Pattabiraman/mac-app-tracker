@@ -8,7 +8,9 @@ h.group("smoke") { h in
 }
 
 h.group("DurationFormat.short") { h in
-    h.equal(DurationFormat.short(0), "<1m", "zero")
+    h.equal(DurationFormat.short(0), "0m", "nothing recorded")
+    h.equal(DurationFormat.short(0.4), "0m", "under a second counts as nothing")
+    h.equal(DurationFormat.short(1), "<1m", "one second")
     h.equal(DurationFormat.short(59), "<1m", "under a minute")
     h.equal(DurationFormat.short(60), "1m")
     h.equal(DurationFormat.short(47 * 60 + 59), "47m", "partial minutes truncate")
@@ -16,7 +18,7 @@ h.group("DurationFormat.short") { h in
     h.equal(DurationFormat.short(6 * 3600 + 6 * 60), "6h 06m")
     h.equal(DurationFormat.short(2 * 3600 + 14 * 60), "2h 14m")
     h.equal(DurationFormat.short(38 * 3600 + 12 * 60), "38h 12m", "stays in hours past 24h")
-    h.equal(DurationFormat.short(-5), "<1m", "negative clamps")
+    h.equal(DurationFormat.short(-5), "0m", "negative clamps")
 }
 
 h.group("DurationFormat.timer") { h in

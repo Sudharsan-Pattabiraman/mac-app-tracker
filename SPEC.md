@@ -100,6 +100,7 @@ Intervals are **split at local midnight** when written, so 23:30 to 00:45 is sto
 ### 2.8 Excluded apps, pause, and untracked time
 
 - **Excluded apps:** a list in Settings. While an excluded app is frontmost, nothing is recorded.
+- **Only regular apps count** (the ones with a Dock icon). System dialogs and background agents that briefly take focus (notification and permission prompts, the keychain password dialog, menu-bar utilities, TikTik itself) are ignored, and the time stays with the app you were using.
 - **Pause tracking:** 15 min, 1 hour, or until resumed. Available from Settings and the popover. The menu bar item shows a paused indicator.
 - **Untracked time is hidden.** The ring shows Active + Idle + Away only (percentages are of tracked time), and charts show empty gaps.
 
@@ -293,7 +294,7 @@ The list is a small table with a header row and these columns:
 - **Header:** small uppercase muted labels (`APP · TIME · RAM · %`). It stays pinned while the rows scroll.
 - **Which apps:** **all** apps used in the range. Nothing is grouped into "Other".
 - **Clickable:** opens the app detail page (5.6).
-- **Duration format:** `2h 14m`. Minutes are zero-padded when hours are present (`6h 06m`). Values stay in hours past 24h (`38h 12m`). Under a minute shows `<1m`.
+- **Duration format:** `2h 14m`. Minutes are zero-padded when hours are present (`6h 06m`). Values stay in hours past 24h (`38h 12m`). Under a minute shows `<1m`; nothing at all shows `0m`.
 
 ### 5.5 Now tab
 

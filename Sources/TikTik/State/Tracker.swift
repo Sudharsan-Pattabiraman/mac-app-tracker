@@ -34,7 +34,7 @@ final class Tracker {
         self.queries = UsageQueries(store: store, calendar: .autoupdatingCurrent)
         let now = Date()
         let front = NSWorkspace.shared.frontmostApplication.flatMap { app in
-            app.bundleIdentifier == FrontmostAppMonitor.ownBundleID ? nil : FrontmostAppMonitor.identity(of: app)
+            FrontmostAppMonitor.counts(app) ? FrontmostAppMonitor.identity(of: app) : nil
         }
         engine = TrackerEngine(config: config, calendar: .autoupdatingCurrent, now: now, frontmost: front,
                                awayReasons: SessionMonitor.isScreenLocked() ? [.locked] : [])
