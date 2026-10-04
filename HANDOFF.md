@@ -1,99 +1,43 @@
 # TikTik: Handoff for the next session
 
-**Date:** 2026-10-04 · **Branch:** `claude/funny-albattani-n7p4d6`
+**Date:** 2026-10-04 · **Branch:** `claude/zen-curie-nejlat` (pushed to GitHub; pushing works now)
 **Read first:** [SPEC.md](SPEC.md) (approved) · [PLAN.md](PLAN.md) (approved) · [design/design-system.html](design/design-system.html) and [design/tiktik-design.html](design/tiktik-design.html) (approved designs)
 
 ## Working agreement with the user
 
-- The user builds and tests on their Mac **only at the end**, and reports compile errors then. The next session should **keep building to completion**, keep the code correct, then package it.
-- GitHub pushes from the cloud session fail with **403** (the Claude GitHub App isn't connected). Every commit so far is local only. Deliver code as a zip via SendUserFile (see "Packaging" below), and tell the user to reconnect at https://claude.ai/connect-github.
+- The user builds and tests on their Mac **only at the end**, and reports compile errors then.
 - The user is not familiar with Xcode. Everything runs through `./run.sh` (Command Line Tools only).
+- Commit and push to the session's branch; also send a zip (see "Packaging") so the user has the files directly.
 
-## Status by milestone
+## Status
 
-| Milestone | Status |
-|---|---|
-| M0 Skeleton (Package.swift, run.sh, panel, fonts) | ✅ done, **user confirmed it runs** |
-| M1 Design system + all screens with `--sample-data` | ✅ written. Not compiled on a Mac yet (user tests at the end) |
-| M2 Tracking engine (core) | ✅ done + **compiled and tested on Linux** |
-| M3 Store + queries (GRDB) | ✅ done + **compiled and tested on Linux** |
-| M5 Domain parsing (Public Suffix List) | ✅ done + tested. Browser AppleScript probe written (macOS-only, unverified) |
-| M2/M3 macOS glue (monitors, Tracker, RealUsageProvider) | 🟡 **written, NOT wired into AppController yet** |
-| M6 Settings wiring, login item, pause, excluded apps | ❌ todo (see below) |
-| M7 Export CSV, Clear all, retention | 🟡 store side done + tested; UI wiring todo |
-| M8 Review, docs, packaging | ❌ todo |
+All milestones are **written**. `TikTikCore` + `TikTikStore` compile and pass **185 checks** on Linux. The macOS app target
+(`Sources/TikTik`) has **never been compiled**; it was reviewed by hand and syntax-checked with tree-sitter.
 
-**Linux checks: 185 passing** (`TikTikChecks`). They cover the engine, day splitting, buckets, aggregation, the SQLite store, queries, CSV and the PSL.
+Done in the 2026-10-04 session:
+- `AppController` wires the real `Tracker` (falls back to `EmptyUsageProvider` if the database can't open), preferences →
+  `tracker.apply`, login item (only after welcome), pause → `tracker.setPaused`, live/minute refresh, RAM sampling while
+  the popover is open, and `AppActions` (browser access, storage text, CSV export via NSSavePanel, Clear all via NSAlert).
+- `StatusItemController.runModal` lowers the status-bar-level popover under dialogs; `onClose` stops RAM sampling.
+- `Tracker.deleteAllData()` also drops the interval in progress.
+- Settings: browser access summary + "Allow…" menu, Export menu (Daily/Raw × 7/30/182 days), storage size, Clear…,
+  1-hour pause shows correctly, excluded-app names. Welcome "Allow…" asks running browsers.
+- `--dump` / `./run.sh dump`; `applicationWillTerminate` saves the open interval.
+- Docs: SPEC 4.1 schema as built, PLAN layout, README.
 
-## Module layout (as built)
+## Next
 
-- `Sources/TikTikCore`: Foundation only, compiled and tested on Linux.
-  - `Engine/`: `TrackerTypes`, `TrackerEngine`, `DaySplitter`
-  - `Query/`: `TimeTab`, `BucketLayout`, `Aggregator`
-  - `Model/UsageModels`
-  - `Format/`: `DurationFormat`, `MemoryFormat`
-  - `Domains/PublicSuffixList`
-- `Sources/TikTikStore`: GRDB, compiled and tested on Linux.
-  - `TrackerStore`: schema v1; append, reclassify, checkpoint, recover, rollup, retention, deleteAll, fileSize
-  - `UsageQueries`: summary, detail, recentStretches, activeToday
-  - `CSVExporter`
-- `Sources/TikTik`: the macOS app, **never compiled**.
-  - `App/`: `TikTikApp` (@main), `AppController`, `StatusItemController`, `PopoverPanel`
-  - `Theme/`, `Components/` (TK*), `Features/` (PopoverRoot, Now, Range, Detail, Settings, Welcome, MenuBar), `Debug/` (SampleData, DesignReview)
-  - `State/`:
-    - `Preferences`
-    - `AppState` (has `actions: AppActions`)
-    - `AppActions`, `UsageProvider` (+ `EmptyUsageProvider`)
-    - `Tracker` (new): owns the engine, store, monitors, 60 s checkpoint and daily retention
-    - `RealUsageProvider` (new)
-  - `Platform/` (new): `ProcessTree` (libproc, responsible pid), `Monitors` (FrontmostAppMonitor, SessionMonitor, InputIdleMonitor, PowerAssertionProbe), `MemorySampler`, `LoginItem` (SMAppService), `BrowserMonitor` (NSAppleScript on main, 1 s timeout; AEDeterminePermissionToAutomateTarget off main)
-  - `Resources/`: JetBrains Mono TTFs + OFL, `public_suffix_list.dat` (copied into the .app by run.sh)
-- `Checks/`: `Harness`, `main`, `EngineChecks`, `QueryChecks`, `DomainChecks` (plain executable, no XCTest)
+1. The user's first full build on a Mac (`./run.sh`). Fix whatever compile errors they paste, keeping fixes minimal.
+2. Then their M1–M8 checks (PLAN §4), including `./run.sh --sample-data`, `./run.sh test`, `./run.sh dump`,
+   Activity Monitor budget (SPEC 6).
 
-Notable design facts (beyond SPEC):
-- **Schema columns** are `start_at` / `end_at` (REAL, Unix seconds) plus `day` (yyyymmdd local). There's also an `open_interval` checkpoint table.
+## Notable design facts (beyond SPEC)
+
 - **Late idle detection** emits `.reclassifyAsIdle(range)`, which `Tracker.persist` applies **after** appending pending records.
 - **Day tabs (1W/1M/6M)** use the daily rollup as synthetic intervals at each day's midnight. Hour tabs use raw rows.
-- **The live open interval** is never in the database while running (it's checkpointed to `open_interval` only for crash recovery). Queries add it via the `live:` parameter.
-
-## Remaining work (in order)
-
-1. **Rewrite `App/AppController.swift`**:
-   - Non-sample mode: `TrackerStore(path: TrackerStore.defaultPath())` → `Tracker(store:config:websiteTracking:)` → `tracker.start()`, provider = `RealUsageProvider(tracker:)`. On store open failure, log it and fall back to `EmptyUsageProvider`.
-   - Sample mode: keep `SampleUsageProvider` and the design review, and don't start the tracker.
-   - `TrackerConfig(idleThreshold: prefs.idleMinutes*60, excludedBundleIDs: Set(prefs.excludedBundleIDs))`.
-   - Preferences sink → `tracker.apply(config:websiteTracking:)`. Also `LoginItem.set(prefs.launchAtLogin)`, but **only if `hasCompletedWelcome`**. At launch, when welcome is done, set `prefs.launchAtLogin = LoginItem.isEnabled`.
-   - Pause: in `observeState`, track the previous `state.pause`; on change call `tracker.setPaused(pause != nil)`. Timed expiry already happens in `tick()`.
-   - `tracker.onLiveChange` → `refreshMenuBar()`, plus `state.reload()` if the panel is visible. `tracker.onDataChange` (every minute) → same.
-   - Menu bar `isIdle: tracker?.engine.open.state == .idle`.
-   - Popover open: `tracker.memory.start()`, with `memory.onUpdate = { state.reload() }` (gives the 5 s live refresh). Popover close: `memory.stop()`. Add an `onClose` to `StatusItemController` (call it from `panel.onDismiss`).
-   - Set `state.actions`:
-     - `requestBrowserAccess` → `tracker.browser.requestAccessForRunningBrowsers()`
-     - `browserAccessSummary` → `tracker.browser.accessSummary()`; `tracker.browser.onAccessChange` → `state.reload()`
-     - `storageSummary` → "182 days kept · \(MB) MB" from `store.fileSize()`
-     - `exportCSV(kind, days)` → window = startOfDay − (days−1) … now; `CSVExporter(store:calendar:).export(kind == .raw ? .raw : .daily, window:)`; then `NSSavePanel` (`allowedContentTypes = [.commaSeparatedText]`, `NSApp.activate`) and write UTF-8
-     - `clearAllData` → `NSAlert` (critical style, "Clear all data" with `hasDestructiveAction = true`, Cancel) → `store.deleteAll()` → `state.reload()`
-     - `canManageData = true`
-   - Welcome Continue → `prefs.hasCompletedWelcome = true`, `LoginItem.set(prefs.launchAtLogin)`, close.
-   - `AppDelegate.applicationWillTerminate` → `controller.tracker?.shutdown()`.
-2. **`Features/Settings/SettingsView.swift`**:
-   - Read `state.actions`.
-   - Browser permissions row: text `actions.browserAccessSummary()`; button "Allow…" → `actions.requestBrowserAccess()`, plus a secondary path to open Automation settings.
-   - Export button → `NativeMenu` with Daily/Raw × last 7/30/182 days → `actions.exportCSV`.
-   - Clear… → `actions.clearAllData()`.
-   - Enable both only when `actions.canManageData`.
-   - Storage text → `actions.storageSummary()`.
-3. **`Features/Welcome/WelcomeView.swift`**: "Allow…" → `state.actions.requestBrowserAccess()`. WelcomeView needs `.environment(appState)` added where it's shown in AppController.
-4. **`--dump`**: in `TikTikMain.main()` before the NSApplication setup, if the arguments contain `--dump`, open the store and print today's intervals (`queries`/`store.intervals(overlapping: today)`) as text, then `exit(0)`. Add `./run.sh dump`, which runs `~/Applications/TikTik.app/Contents/MacOS/TikTik --dump` directly.
-5. **Full review of all macOS-only code** (it can't be compiled here):
-   - Swift 5 language mode; macOS 14 APIs only.
-   - Watch for: actor isolation of closures (`MainActor.assumeIsolated` inside notification/timer blocks), memberwise-init access with private properties, `@Observable` + `didSet` (avoid), generic static stored properties (not allowed), missing imports (`import TikTikStore` where store types are used; `UniformTypeIdentifiers` for `.commaSeparatedText`).
-   - Also check: `PopoverRoot` badge/sizes against the mockups, and `TKBarChart` (Swift Charts `chartOverlay`/`plotFrame`, categorical x).
-6. **Docs**:
-   - SPEC 4.1 schema: `start_at`/`end_at` REAL + `day`, plus `open_interval`.
-   - README: milestone table, `./run.sh dump`, and the note that pause doesn't persist across relaunch.
-   - PLAN: the new `TikTikStore` target.
-7. **Commit**, run the Linux checks, **package the zip and SendUserFile it**, and give the user test instructions (`./run.sh`, `./run.sh --sample-data`, `./run.sh test` should print all checks passing, ~185+).
+- **The live open interval** is never in the database while running (only checkpointed to `open_interval` for crash
+  recovery). Queries add it via the `live:` parameter. CSV export covers saved rows only.
+- **Pause** isn't persisted across relaunch (documented in README).
 
 ## How to compile and test on Linux (rebuild in a new session)
 

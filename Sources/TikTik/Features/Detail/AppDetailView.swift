@@ -62,7 +62,7 @@ struct AppDetailView: View {
     private func content(_ detail: AppDetail) -> some View {
         VStack(spacing: Space.s3) {
             TKBarChart(buckets: detail.buckets, title: "Usage", unitLabel: detail.tab.bucket.unitLabel,
-                       tickIndices: RangeView.tickIndices(count: detail.buckets.count))
+                       tickIndices: RangeView.tickIndices(count: detail.buckets.count, tab: detail.tab))
             StatGrid(items: [
                 ("Sessions", "\(detail.sessions)"),
                 ("Longest", DurationFormat.short(detail.longestSession)),

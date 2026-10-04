@@ -9,6 +9,10 @@ final class StatusItemController: NSObject {
 
     /// Called just before the panel appears (resets to the default tab).
     var onOpen: (() -> Void)?
+    /// Called after the panel closes.
+    var onClose: (() -> Void)?
+
+    var isPanelVisible: Bool { panel.isVisible }
 
     init(panel: PopoverPanel) {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -17,6 +21,7 @@ final class StatusItemController: NSObject {
 
         panel.onDismiss = { [weak self] in
             self?.statusItem.button?.highlight(false)
+            self?.onClose?()
         }
 
         if let button = statusItem.button {
@@ -46,6 +51,17 @@ final class StatusItemController: NSObject {
         let anchor = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
         panel.show(below: anchor)
         button.highlight(true)
+    }
+
+    /// Runs a modal dialog (save panel, alert, open panel) with the popover lowered beneath it.
+    /// The popover floats at status-bar level, which would otherwise cover the dialog.
+    func runModal(_ body: () -> Void) {
+        let level = panel.level
+        panel.level = .normal
+        NSApp.activate(ignoringOtherApps: true)
+        body()
+        panel.level = level
+        if panel.isVisible { panel.makeKey() }
     }
 
     @objc private func togglePanel(_ sender: Any?) {

@@ -20,6 +20,8 @@ struct AppActions {
     var storageSummary: () -> String = { "182 days kept · cleaned daily" }
     var exportCSV: (ExportKind, _ days: Int) -> Void = { _, _ in }
     var clearAllData: () -> Void = {}
+    /// Runs a modal dialog (open panel, alert) above the popover.
+    var runModal: (() -> Void) -> Void = { body in body() }
     /// False in sample mode, where there's no real data to export or clear.
     var canManageData = false
 }

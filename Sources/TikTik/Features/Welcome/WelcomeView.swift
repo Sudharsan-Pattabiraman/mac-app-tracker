@@ -3,6 +3,7 @@ import SwiftUI
 
 /// First-launch window (SPEC 5.8): menu bar style, Chrome access, launch at login.
 struct WelcomeView: View {
+    @Environment(AppState.self) private var state
     @EnvironmentObject private var preferences: Preferences
     @Environment(\.palette) private var palette
     let onContinue: () -> Void
@@ -34,9 +35,9 @@ struct WelcomeView: View {
                 VStack(spacing: 0) {
                     SettingRow("Website tracking in Chrome",
                                "macOS will ask once to let TikTik read the active tab's address in Chrome, Brave or Edge. Only the domain is stored. Incognito is never recorded.") {
-                        Button("Allow…") {}
+                        Button("Allow…") { state.actions.requestBrowserAccess() }
                             .buttonStyle(.tk(.outline, size: .small))
-                            .help("Asks for access in milestone M5")
+                            .help("Asks each running browser. Open Chrome first if it isn't running.")
                     }
                     TKSeparator()
                     SettingRow("Launch at login", "Recommended. TikTik can't record time while it isn't running.") {

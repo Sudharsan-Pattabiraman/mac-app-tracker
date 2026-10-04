@@ -5,6 +5,7 @@
 #   ./run.sh test         Run the core logic checks
 #   ./run.sh build        Build TikTik.app into ./build without installing
 #   ./run.sh logs         Stream TikTik's log messages (Ctrl-C to stop)
+#   ./run.sh dump         Print today's recorded intervals
 #   ./run.sh uninstall    Quit TikTik and remove it from ~/Applications
 #
 # Any other arguments are passed to the app, e.g. ./run.sh --sample-data
@@ -150,13 +151,17 @@ case "${1:-}" in
   logs)
     log stream --style compact --predicate 'subsystem == "app.tiktik"'
     ;;
+  dump)
+    [[ -x "$INSTALL_DIR/$APP_NAME.app/Contents/MacOS/$APP_NAME" ]] || fail "TikTik isn't installed yet. Run ./run.sh first."
+    "$INSTALL_DIR/$APP_NAME.app/Contents/MacOS/$APP_NAME" --dump
+    ;;
   uninstall)
     quit_running
     rm -rf "$INSTALL_DIR/$APP_NAME.app"
     step "Removed $INSTALL_DIR/$APP_NAME.app (your data in ~/Library/Application Support/TikTik is kept)"
     ;;
   -h|--help|help)
-    sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
     ;;
   *)
     check_tools

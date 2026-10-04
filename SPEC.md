@@ -134,34 +134,49 @@ There's no back and forward navigation; every range ends now. The range badge sh
 | Clear all data | Yes. A destructive button that asks for confirmation first, and can't be undone. |
 | Settings storage | `UserDefaults` |
 
-### 4.1 Proposed schema
+### 4.1 Schema
+
+As built (GRDB migration `v1`):
 
 ```sql
 CREATE TABLE app (
-  id         INTEGER PRIMARY KEY,
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
   bundle_id  TEXT NOT NULL UNIQUE,     -- e.g. com.google.Chrome
   name       TEXT NOT NULL             -- display name, refreshed on each sighting
 );
 
 CREATE TABLE domain (
-  id         INTEGER PRIMARY KEY,
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
   name       TEXT NOT NULL UNIQUE      -- registrable domain, or the sentinel "Private browsing"
 );
 
 CREATE TABLE interval (
-  id         INTEGER PRIMARY KEY,
-  start      INTEGER NOT NULL,         -- Unix seconds, UTC
-  end        INTEGER NOT NULL,         -- Unix seconds, UTC; never crosses local midnight
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  start_at   REAL NOT NULL,            -- Unix seconds (UTC), fractional
+  end_at     REAL NOT NULL,            -- Unix seconds (UTC); never crosses local midnight
+  day        INTEGER NOT NULL,         -- local day key, yyyymmdd (retention and daily totals)
   state      INTEGER NOT NULL,         -- 0 active, 1 idle, 2 away
   app_id     INTEGER REFERENCES app(id),     -- set only when state = active
   domain_id  INTEGER REFERENCES domain(id)   -- set only for supported browsers
 );
-CREATE INDEX interval_start      ON interval(start);
-CREATE INDEX interval_app_start  ON interval(app_id, start);
+CREATE INDEX interval_day      ON interval(day);
+CREATE INDEX interval_start    ON interval(start_at);
+CREATE INDEX interval_app_day  ON interval(app_id, day);
+
+-- At most one row: the interval in progress, checkpointed every 60 s.
+CREATE TABLE open_interval (
+  id         INTEGER PRIMARY KEY,
+  start_at   REAL NOT NULL,
+  end_at     REAL NOT NULL,
+  state      INTEGER NOT NULL,
+  app_id     INTEGER,
+  domain_id  INTEGER
+);
 ```
 
-- The current (open) interval is kept in memory. It's written to the database when the state, app or domain changes, and **checkpointed every 60 s**, so a crash loses at most one minute.
-- Range queries clip intervals to the window boundaries, so a session that started before "6h ago" counts only its in-window part.
+- The current (open) interval is kept in memory and written to `interval` when the state, app or domain changes, or when TikTik quits.
+- Every 60 s it's **checkpointed** into `open_interval`. If TikTik didn't quit cleanly (crash, force quit), the next launch turns the checkpoint into a real row, so a crash loses at most one minute.
+- Range queries clip intervals to the window boundaries, so a session that started before "6h ago" counts only its in-window part. 1W, 1M and 6M read per-day totals grouped by `day`.
 
 ---
 

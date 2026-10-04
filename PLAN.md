@@ -83,78 +83,52 @@ The macOS layer is thin. It turns system signals into simple `TrackerEvent` valu
 
 ```
 mac-app-tracker/
-├── Package.swift                  # SwiftPM: TikTikCore (library), TikTik (executable), tests
-├── run.sh                         # build → bundle TikTik.app → sign ad-hoc → install → launch
-├── README.md                      # how to install, run, update, troubleshoot
-├── SPEC.md · PLAN.md
+├── Package.swift                  # SwiftPM: TikTikCore, TikTikStore, TikTik (app), TikTikChecks
+├── run.sh                         # build → bundle TikTik.app → sign → install → launch; test, dump, logs
+├── README.md · SPEC.md · PLAN.md
 ├── design/                        # approved design references + screenshots
 ├── Support/
 │   └── Info.plist                 # LSUIElement, bundle id app.tiktik, NSAppleEventsUsageDescription
 ├── Sources/
-│   ├── TikTikCore/                # Foundation only. All the logic, fully unit-tested.
-│   │   ├── Model/                 # ActivityState, Interval, AppIdentity, Stretch
+│   ├── TikTikCore/                # Foundation only. All the logic, unit-tested on Linux and macOS.
+│   │   ├── Model/UsageModels.swift      # ActivityState, AppIdentity, summaries, Stretch
 │   │   ├── Engine/
-│   │   │   ├── TrackerEvent.swift
-│   │   │   ├── TrackerEngine.swift      # state machine: events → intervals
-│   │   │   ├── IdlePolicy.swift         # threshold, backdating, assertion rule
-│   │   │   └── MidnightSplitter.swift
+│   │   │   ├── TrackerTypes.swift       # TrackerEvent, TrackedInterval, TrackerOutput, config
+│   │   │   ├── TrackerEngine.swift      # state machine: events → intervals (idle, away, stretches)
+│   │   │   └── DaySplitter.swift        # midnight / DST splitting, day keys
 │   │   ├── Query/
-│   │   │   ├── TimeRange.swift          # Now, 6h … 6M (rolling windows)
-│   │   │   ├── Aggregator.swift         # totals, per-app, buckets, sessions, top domains
-│   │   │   └── Bucketing.swift          # 15m / 30m / 1h / day / week
-│   │   ├── Domains/
-│   │   │   ├── PublicSuffixList.swift
-│   │   │   └── DomainParser.swift
-│   │   └── Format/
-│   │       ├── DurationFormatter.swift  # 2h 14m, 6h 06m, <1m, 47m 12s
-│   │       └── MemoryFormatter.swift    # 612 MB, 2.1 GB
+│   │   │   ├── TimeTab.swift            # Now, 6h … 6M (rolling windows)
+│   │   │   ├── BucketLayout.swift       # 15m / 30m / 1h / day / week
+│   │   │   └── Aggregator.swift         # totals, per-app, buckets, sessions, stretches, domains
+│   │   ├── Domains/PublicSuffixList.swift
+│   │   └── Format/                      # DurationFormat (2h 14m), MemoryFormat (2.1 GB)
+│   ├── TikTikStore/               # GRDB, no AppKit. Tested on Linux and macOS.
+│   │   ├── TrackerStore.swift           # schema, append, reclassify, checkpoint, recovery, retention
+│   │   ├── UsageQueries.swift           # summary, detail, recent stretches, active today
+│   │   └── CSVExporter.swift            # raw intervals / daily totals
 │   └── TikTik/                    # macOS app
 │       ├── App/
-│       │   ├── TikTikApp.swift          # @main, app delegate wiring
+│       │   ├── TikTikApp.swift          # @main, app delegate, --dump
+│       │   ├── AppController.swift      # wires preferences, tracker, menu bar, popover, windows
 │       │   ├── StatusItemController.swift
-│       │   ├── PopoverPanel.swift       # non-activating NSPanel + positioning
-│       │   └── AppEnvironment.swift     # dependency container
+│       │   └── PopoverPanel.swift       # non-activating NSPanel + positioning
 │       ├── Platform/
-│       │   ├── FrontmostAppMonitor.swift
-│       │   ├── InputIdleMonitor.swift   # adaptive timer
-│       │   ├── PowerAssertionProbe.swift
-│       │   ├── SessionMonitor.swift     # lock, sleep, display, screensaver, user switch
-│       │   ├── BrowserTabProbe.swift    # AppleScript for Chromium browsers
-│       │   ├── MemorySampler.swift
-│       │   ├── AppIconCache.swift
+│       │   ├── Monitors.swift           # frontmost app, session (lock/sleep/…), input idle, power assertions
+│       │   ├── BrowserMonitor.swift     # AppleScript for Chromium browsers + Automation permission
+│       │   ├── MemorySampler.swift · ProcessTree.swift
 │       │   └── LoginItem.swift
-│       ├── Storage/
-│       │   ├── Database.swift           # GRDB pool, migrations
-│       │   ├── IntervalStore.swift      # write, checkpoint, queries
-│       │   ├── Retention.swift          # 182-day cleanup, launch + daily
-│       │   └── CSVExporter.swift
 │       ├── State/
-│       │   ├── Tracker.swift            # owns engine + monitors, publishes LiveState
-│       │   ├── Preferences.swift
-│       │   └── PopoverModel.swift       # selected tab, sort, navigation
-│       ├── Theme/
-│       │   ├── Theme.swift              # colors, Space, Radius, TextStyle
-│       │   └── Fonts.swift
-│       ├── Components/                  # shadcn-style, token-only
-│       │   ├── TKCard.swift · TKTabs.swift · TKButton.swift · TKBadge.swift
-│       │   ├── TKProgress.swift · TKSeparator.swift · TKTooltip.swift
-│       │   ├── TKSwitch.swift · TKSelect.swift · TKBanner.swift
-│       │   ├── TKRing.swift · TKBarChart.swift · TKEmptyState.swift
-│       │   └── AppTable.swift           # App · Time · RAM · % with sortable header
-│       ├── Features/
-│       │   ├── PopoverRoot.swift        # header, tabs, navigation stack, footer
-│       │   ├── Now/NowView.swift
-│       │   ├── Range/RangeView.swift    # ring or legend+chart, app table
-│       │   ├── Detail/AppDetailView.swift
-│       │   ├── Settings/SettingsView.swift · ExcludedAppsView.swift · ExportSheet.swift
-│       │   ├── Welcome/WelcomeWindow.swift
-│       │   └── MenuBar/MenuBarLabel.swift
-│       ├── Debug/SampleData.swift       # --sample-data
+│       │   ├── Tracker.swift            # owns engine, store and monitors; checkpoint + retention
+│       │   ├── RealUsageProvider.swift  # queries off the main thread + live RAM
+│       │   ├── UsageProvider.swift · AppState.swift · AppActions.swift · Preferences.swift
+│       ├── Theme/                       # Theme.swift (tokens), Fonts.swift
+│       ├── Components/                  # TK* shadcn-style components, AppTable, AppIconView
+│       ├── Features/                    # PopoverRoot, Now, Range, Detail, Settings, Welcome, MenuBar
+│       ├── Debug/                       # SampleData + Design review window (--sample-data)
 │       └── Resources/
 │           ├── Fonts/JetBrainsMono-{Regular,Medium,SemiBold}.ttf
 │           └── public_suffix_list.dat
-└── Tests/
-    └── TikTikCoreTests/                 # engine timelines, idle, midnight, ranges, formatting, PSL
+└── Checks/                        # TikTikChecks: engine, store, query, CSV and PSL checks
 ```
 
 The `TK` prefix keeps our components from clashing with SwiftUI names (`Button`, `Tabs`).
@@ -169,7 +143,7 @@ Each milestone ends with a **check-in**: I push the work, you run `git pull && .
 |---|---|---|---|
 | **M0** | **Skeleton runs on your Mac** | `Package.swift`, `run.sh`, `Info.plist`, an empty `TikTikCore`, fonts registered, hourglass in the menu bar, an empty 380 × 560 panel that opens and closes, README install steps | `xcode-select --install` and `./run.sh` work. The hourglass appears, there's no Dock icon, the panel opens under the icon and closes when you click elsewhere. Also: paste me the output of `swift --version`. |
 | **M1** | **Design system in SwiftUI** | `Theme.swift`, all `TK*` components, `--sample-data` rendering **every approved screen** with mockup data: Now, all ranges, detail, settings, paused, empty states, welcome, all six menu bar styles | Side by side with the mockups, in light and dark. This is the visual sign-off before any real data exists. |
-| **M2** | **Tracking engine** | `TikTikCore` engine + unit tests: idle backdating, video/call rule, Away rules, midnight split, stretch rule. Platform monitors, database, checkpointing. A temporary debug line in the panel shows the live state. | Use the Mac normally for a while. Lock, sleep, play a video, sit idle, cross a midnight if convenient. The debug line and `./run.sh --dump` (prints today's intervals) look right. |
+| **M2** | **Tracking engine** | `TikTikCore` engine + unit tests: idle backdating, video/call rule, Away rules, midnight split, stretch rule. Platform monitors, database, checkpointing. A temporary debug line in the panel shows the live state. | Use the Mac normally for a while. Lock, sleep, play a video, sit idle, cross a midnight if convenient. `./run.sh dump` (prints today's intervals) looks right. |
 | **M3** | **Real data in the popover** | Range queries and bucketing, ring and legend+chart, `AppTable` with live RAM, sorting, bold heavy apps, chart tooltips, default tab (6h) | Every range shows plausible numbers. RAM matches Activity Monitor within reason. Sorting works. |
 | **M4** | **Now tab + app detail** | Live stretch timer, recent list, app detail (usage chart, sessions, longest, first/last, RAM) | Now follows you as you switch apps (never shows TikTik). Detail numbers agree with the list. |
 | **M5** | **Chrome domains** | Public Suffix List, AppleScript probe for Chrome/Brave/Edge, incognito → "Private browsing", top domains in detail, the access-denied state | The Automation prompt appears once. Sites show up as registrable domains. Incognito is hidden. Denying access shows the "No access" card. |
@@ -186,7 +160,7 @@ Each milestone ends with a **check-in**: I push the work, you run `git pull && .
 
 ## 5. Testing strategy
 
-- **Unit tests (`TikTikCore`):** scripted timelines such as "Xcode 13:00, input stops 13:10, idle threshold 5 min, Chrome 13:20" assert the exact intervals produced. Covered:
+- **Unit checks (`TikTikCore`, `TikTikStore`):** a plain executable (`Checks/`), since XCTest needs Xcode. Scripted timelines such as "Xcode 13:00, input stops 13:10, idle threshold 5 min, Chrome 13:20" assert the exact intervals produced. Covered:
   - idle backdating
   - display-sleep assertions
   - lock and sleep
@@ -196,10 +170,11 @@ Each milestone ends with a **check-in**: I push the work, you run `git pull && .
   - bucketing
   - formatting
   - PSL edge cases (`co.uk`, `github.io`, IPs, `localhost`)
+  - the SQLite store: append, late idle reclassification, crash recovery, retention, clear all, CSV
 
   You run them with `./run.sh test`; I'll ask for the output at check-ins that touch the core.
 - **Sample-data mode** for visual comparison with the approved mockups.
-- **`./run.sh --dump`** prints recorded intervals for a day. This is the ground truth when numbers look odd.
+- **`./run.sh dump`** prints today's recorded intervals and totals. This is the ground truth when numbers look odd.
 - **Manual checklists** at each milestone (the table above), written into each milestone's commit message and README section.
 
 ---
@@ -208,10 +183,10 @@ Each milestone ends with a **check-in**: I push the work, you run `git pull && .
 
 | Risk | Mitigation |
 |---|---|
-| **I can't compile here.** This container is Linux with no Swift toolchain (the swift.org download is blocked by the environment's network policy), so the first compile happens on your Mac. | Small milestones. Platform-free logic in `TikTikCore`. Conservative APIs (macOS 14 SDK, Swift 5.9 syntax). Paste me any build errors and I fix them. **Optional:** if you allow `download.swift.org` in this environment's network settings, I can compile and unit-test `TikTikCore` on Linux before every push, which catches most logic and syntax errors before they reach you. |
+| **The macOS app can't be compiled here.** The container is Linux. `TikTikCore` and `TikTikStore` are compiled and checked on Linux (Ubuntu's Swift 6.0.3 package) before every push; the AppKit/SwiftUI layer is first compiled on your Mac. | Small milestones. All logic and storage in the Linux-tested modules. Conservative APIs (macOS 14 SDK, Swift 5 language mode). Paste me any build errors and I fix them. |
 | Ad-hoc signing changes on every rebuild, so macOS may re-ask for Chrome access and reset launch at login. | `run.sh` signs with a **stable self-signed identity** (created once in your keychain, with your OK), so the signature stays the same across rebuilds and permissions persist. If you'd rather not create one, it falls back to ad-hoc and the README explains how to re-grant. |
 | Some helper processes (XPC services) don't descend from their app, so RAM is undercounted. | Responsible-PID grouping, plus a comparison against Activity Monitor at M3. |
-| Chrome's AppleScript can be slow or blocked while Chrome is busy. | 1 s timeout per call; on timeout, keep the last known domain; never block the main thread (runs on a background queue). |
+| Chrome's AppleScript can be slow or blocked while Chrome is busy. | 1 s AppleEvent timeout per call (NSAppleScript must run on the main thread); on failure, keep the last known domain. The permission check runs off the main thread. |
 | Swift Charts hover tooltips are fiddly in a non-activating panel. | Fall back to tracking-area hover in AppKit if needed, decided at M3. |
 
 ---

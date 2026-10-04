@@ -9,7 +9,9 @@ struct SettingsView: View {
     @EnvironmentObject private var preferences: Preferences
 
     var body: some View {
-        VStack(spacing: Space.s3) {
+        // Re-read permission and storage text whenever data or browser access changes.
+        let _ = state.dataRevision
+        return VStack(spacing: Space.s3) {
             ZStack {
                 HStack {
                     BackButton()
@@ -63,8 +65,8 @@ struct SettingsView: View {
                 Toggle("", isOn: $preferences.websiteTracking).toggleStyle(.tk).labelsHidden()
             }
             TKSeparator()
-            SettingRow("Browser permissions", "Chrome — · Brave — · Edge —") {
-                Button("Open…", action: openAutomationSettings).buttonStyle(.tk(.outline, size: .small))
+            SettingRow("Browser permissions", state.actions.browserAccessSummary()) {
+                Button("Allow…", action: showPermissionMenu).buttonStyle(.tk(.outline, size: .small))
             }
             TKSeparator()
             SettingRow("Excluded apps", excludedDescription) {
@@ -80,21 +82,19 @@ struct SettingsView: View {
     private var data: some View {
         SettingsGroup("Data") {
             SettingRow("Export CSV", "Raw intervals or daily totals.") {
-                Button("Export…") {}
+                Button("Export…", action: showExportMenu)
                     .buttonStyle(.tk(.outline, size: .small))
-                    .disabled(true)
-                    .help("Arrives in milestone M7")
+                    .disabled(!state.actions.canManageData)
             }
             TKSeparator()
-            SettingRow("Storage", "182 days kept · cleaned daily") {
+            SettingRow("Storage", state.actions.storageSummary()) {
                 EmptyView()
             }
             TKSeparator()
             SettingRow("Clear all data", "Permanently deletes all history. Asks first.") {
-                Button("Clear…") {}
+                Button("Clear…") { state.actions.clearAllData() }
                     .buttonStyle(.tk(.destructive, size: .small))
-                    .disabled(true)
-                    .help("Arrives in milestone M7")
+                    .disabled(!state.actions.canManageData)
             }
         }
     }
@@ -129,7 +129,8 @@ struct SettingsView: View {
                 switch state.pause {
                 case .none: return .off
                 case .indefinitely: return .untilResumed
-                case .until: return .fifteenMinutes
+                // A pause of more than 15 minutes left can only be the 1-hour one.
+                case .until(let end): return end.timeIntervalSinceNow > 15 * 60 ? .oneHour : .fifteenMinutes
                 }
             },
             set: { option in
@@ -146,21 +147,24 @@ struct SettingsView: View {
     // MARK: Excluded apps
 
     private var excludedDescription: String {
-        let names = preferences.excludedBundleIDs.map { bundleID -> String in
-            guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return bundleID }
-            return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
-        }
+        let names = preferences.excludedBundleIDs.map(Self.appName(for:))
         return names.isEmpty ? "Never recorded. None yet." : "Never recorded. " + names.joined(separator: ", ") + "."
     }
 
     private func editExcludedApps() {
         var items: [NativeMenu.Item] = [.init(title: "Add an app…") { addExcludedApp() }]
         for bundleID in preferences.excludedBundleIDs {
-            items.append(.init(title: "Remove \(bundleID)") {
+            items.append(.init(title: "Remove \(Self.appName(for: bundleID))") {
                 preferences.excludedBundleIDs.removeAll { $0 == bundleID }
             })
         }
         NativeMenu.show(items: items)
+    }
+
+    private static func appName(for bundleID: String) -> String {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return bundleID }
+        let name = FileManager.default.displayName(atPath: url.path)
+        return name.hasSuffix(".app") ? String(name.dropLast(4)) : name
     }
 
     private func addExcludedApp() {
@@ -169,13 +173,37 @@ struct SettingsView: View {
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         panel.allowedContentTypes = [.application]
         panel.allowsMultipleSelection = true
-        NSApp.activate(ignoringOtherApps: true)
-        guard panel.runModal() == .OK else { return }
-        for url in panel.urls {
-            if let bundleID = Bundle(url: url)?.bundleIdentifier, !preferences.excludedBundleIDs.contains(bundleID) {
-                preferences.excludedBundleIDs.append(bundleID)
+        state.actions.runModal {
+            guard panel.runModal() == .OK else { return }
+            for url in panel.urls {
+                if let bundleID = Bundle(url: url)?.bundleIdentifier, !preferences.excludedBundleIDs.contains(bundleID) {
+                    preferences.excludedBundleIDs.append(bundleID)
+                }
             }
         }
+    }
+
+    // MARK: Data
+
+    private func showExportMenu() {
+        var items: [NativeMenu.Item] = []
+        for kind in [ExportKind.daily, .raw] {
+            for days in [7, 30, 182] {
+                items.append(.init(title: "\(kind.title) · last \(days) days") {
+                    state.actions.exportCSV(kind, days)
+                })
+            }
+        }
+        NativeMenu.show(items: items)
+    }
+
+    // MARK: Browser access
+
+    private func showPermissionMenu() {
+        NativeMenu.show(items: [
+            .init(title: "Ask running browsers for access") { state.actions.requestBrowserAccess() },
+            .init(title: "Open Automation settings…") { openAutomationSettings() },
+        ])
     }
 
     private func openAutomationSettings() {

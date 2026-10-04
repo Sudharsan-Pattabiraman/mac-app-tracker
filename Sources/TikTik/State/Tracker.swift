@@ -26,6 +26,7 @@ final class Tracker {
     private let input = InputIdleMonitor()
     private var checkpointTimer: Timer?
     private var lastMaintenanceDay: Int?
+    private var isPaused = false
     private let log = Logger(subsystem: "app.tiktik", category: "tracker")
 
     init(store: TrackerStore, config: TrackerConfig, websiteTracking: Bool) {
@@ -98,7 +99,21 @@ final class Tracker {
     // MARK: Inputs from the app
 
     func setPaused(_ paused: Bool) {
+        isPaused = paused
         send(.pausedChanged(paused))
+    }
+
+    /// Settings → Clear all data. Also drops the interval in progress, so nothing from before
+    /// the clear is saved afterwards; tracking carries on from now.
+    func deleteAllData() throws {
+        let now = Date()
+        engine.handle(.pausedChanged(true), at: now)   // closes the open interval; its output is discarded
+        defer {
+            if !isPaused { engine.handle(.pausedChanged(false), at: now) }
+            domainSince = engine.open.domain == nil ? nil : now
+            onLiveChange?()
+        }
+        try store.deleteAll()
     }
 
     func apply(config: TrackerConfig, websiteTracking: Bool) {

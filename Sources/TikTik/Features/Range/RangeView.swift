@@ -38,7 +38,7 @@ struct RangeView: View {
             } else {
                 StateLegendLine(active: summary.active, idle: summary.idle, away: summary.away)
                 TKBarChart(buckets: summary.buckets, title: "Active", unitLabel: tab.bucket.unitLabel,
-                           tickIndices: Self.tickIndices(count: summary.buckets.count))
+                           tickIndices: Self.tickIndices(count: summary.buckets.count, tab: tab))
                 if let start = summary.historyStart {
                     Text("History starts \(PopoverRoot.dayFormatter.string(from: start)) · earlier \(tab == .m6 ? "weeks" : "days") have no data")
                         .textStyle(.label)
@@ -71,12 +71,12 @@ struct RangeView: View {
         return ""
     }
 
-    static func tickIndices(count: Int) -> [Int] {
+    static func tickIndices(count: Int, tab: TimeTab) -> [Int] {
         switch count {
         case 7: return Array(0..<7)
         case 30: return [0, 10, 20, 29]
         case 26: return [0, 9, 17, 25]
-        case 24: return [0, 6, 12, 18, 23]
+        case 24: return tab == .h24 ? [0, 6, 12, 18, 23] : [0, 8, 16, 23]
         default: return count > 0 ? [0, count - 1] : []
         }
     }
