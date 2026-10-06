@@ -6,6 +6,7 @@
 #   ./run.sh build        Build TikTik.app into ./build without installing
 #   ./run.sh logs         Stream TikTik's log messages (Ctrl-C to stop)
 #   ./run.sh dump         Print today's recorded intervals
+#   ./run.sh diagnose     If TikTik quit by itself: recent log and the latest crash report
 #   ./run.sh uninstall    Quit TikTik and remove it from ~/Applications
 #
 # Any other arguments are passed to the app, e.g. ./run.sh --sample-data
@@ -155,13 +156,33 @@ case "${1:-}" in
     [[ -x "$INSTALL_DIR/$APP_NAME.app/Contents/MacOS/$APP_NAME" ]] || fail "TikTik isn't installed yet. Run ./run.sh first."
     "$INSTALL_DIR/$APP_NAME.app/Contents/MacOS/$APP_NAME" --dump
     ;;
+  diagnose)
+    step "Is TikTik running?"
+    if pgrep -x "$APP_NAME" >/dev/null 2>&1; then note "Yes (pid $(pgrep -x "$APP_NAME"))"; else note "No"; fi
+
+    step "TikTik's log, last 2 days (launches, quits, sleep and wake)"
+    log show --last 2d --style compact --predicate 'subsystem == "app.tiktik"' 2>/dev/null \
+      | grep -v '^Timestamp' | tail -n 60 || true
+
+    step "Latest crash report"
+    report="$(ls -t "$HOME/Library/Logs/DiagnosticReports/"TikTik* "$HOME/Library/Logs/DiagnosticReports/Retired/"TikTik* 2>/dev/null | head -n 1 || true)"
+    if [[ -z "$report" ]]; then
+      note "None. macOS didn't record a crash, so TikTik was quit or killed rather than crashing."
+    elif command -v python3 >/dev/null 2>&1; then
+      python3 Support/crash_summary.py "$report"
+    else
+      head -c 4000 "$report"
+    fi
+    echo
+    note "Copy everything above and send it to Claude."
+    ;;
   uninstall)
     quit_running
     rm -rf "$INSTALL_DIR/$APP_NAME.app"
     step "Removed $INSTALL_DIR/$APP_NAME.app (your data in ~/Library/Application Support/TikTik is kept)"
     ;;
   -h|--help|help)
-    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
     ;;
   *)
     check_tools

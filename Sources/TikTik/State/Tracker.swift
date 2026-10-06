@@ -47,7 +47,8 @@ final class Tracker {
     func start() {
         do {
             if let recovered = try store.recoverOpenInterval(calendar: calendar) {
-                log.info("Recovered an unfinished interval of \(Int(recovered.duration)) s")
+                // Only happens when the previous run didn't quit normally (crash, force quit, killed).
+                log.notice("Previous run ended unexpectedly; recovered \(Int(recovered.duration)) s ending \(recovered.end, privacy: .public)")
             }
         } catch {
             log.error("Recovery failed: \(error.localizedDescription, privacy: .public)")
@@ -61,6 +62,7 @@ final class Tracker {
         }
         session.onChange = { [weak self] reason, started in
             guard let self else { return }
+            self.log.notice("\(started ? "Away started" : "Away ended", privacy: .public): \(reason.rawValue, privacy: .public)")
             self.send(started ? .awayStarted(reason) : .awayEnded(reason))
             if !started { self.input.sampleNow() }
         }
@@ -94,6 +96,7 @@ final class Tracker {
             persist([.record(open)])
         }
         do { try store.checkpoint(nil) } catch { log.error("Final checkpoint failed") }
+        log.notice("Tracking stopped, data saved")
     }
 
     // MARK: Inputs from the app

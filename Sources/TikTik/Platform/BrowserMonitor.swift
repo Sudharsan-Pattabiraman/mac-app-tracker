@@ -40,6 +40,8 @@ final class BrowserMonitor {
     private var lastDomain: String?
     private var scripts: [String: NSAppleScript] = [:]
     private var permissionCheckInFlight: Set<String> = []
+    /// True while an AppleScript call is running; guards against re-entrant probes.
+    private var isProbing = false
     private let suffixList: PublicSuffixList?
     private let log = Logger(subsystem: "app.tiktik", category: "browser")
 
@@ -91,8 +93,16 @@ final class BrowserMonitor {
     // MARK: Probing
 
     private func probe() {
-        guard let bundleID = activeBrowser, access[bundleID] == .allowed else { return }
-        switch Self.readActiveTab(bundleID: bundleID, scripts: &scripts) {
+        guard !isProbing, let bundleID = activeBrowser, access[bundleID] == .allowed,
+              let script = script(for: bundleID) else { return }
+        // Nothing is borrowed across the call: AppleScript can wait up to a second for the browser,
+        // and other main-thread work may run meanwhile.
+        isProbing = true
+        let result = Self.readActiveTab(script)
+        isProbing = false
+        // The browser may have changed (or tracking been turned off) while the script ran.
+        guard activeBrowser == bundleID else { return }
+        switch result {
         case .tab(let url, let incognito):
             let domain = incognito ? DomainUsage.privateBrowsing : suffixList?.registrableDomain(forURL: url)
             publish(domain)
@@ -119,14 +129,10 @@ final class BrowserMonitor {
         case failed
     }
 
-    /// Runs the (cached, compiled) AppleScript. On the main thread, as NSAppleScript requires;
-    /// a 1-second AppleEvent timeout bounds the worst case.
-    private static func readActiveTab(bundleID: String, scripts: inout [String: NSAppleScript]) -> TabResult {
-        let script: NSAppleScript
-        if let cached = scripts[bundleID] {
-            script = cached
-        } else {
-            let source = """
+    /// The compiled script for a browser (compiled once, then cached).
+    private func script(for bundleID: String) -> NSAppleScript? {
+        if let cached = scripts[bundleID] { return cached }
+        let source = """
                 with timeout of 1 second
                     tell application id "\(bundleID)"
                         if (count of windows) is 0 then return "TIKTIK:NOWINDOW"
@@ -135,13 +141,19 @@ final class BrowserMonitor {
                     end tell
                 end timeout
                 """
-            guard let compiled = NSAppleScript(source: source) else { return .failed }
-            var compileError: NSDictionary?
-            guard compiled.compileAndReturnError(&compileError) else { return .failed }
-            scripts[bundleID] = compiled
-            script = compiled
+        guard let compiled = NSAppleScript(source: source) else { return nil }
+        var compileError: NSDictionary?
+        guard compiled.compileAndReturnError(&compileError) else {
+            log.error("Couldn't compile the tab script for \(bundleID, privacy: .public)")
+            return nil
         }
+        scripts[bundleID] = compiled
+        return compiled
+    }
 
+    /// Runs the tab script. On the main thread, as NSAppleScript requires; a 1-second AppleEvent
+    /// timeout bounds the worst case.
+    private static func readActiveTab(_ script: NSAppleScript) -> TabResult {
         var error: NSDictionary?
         let result = script.executeAndReturnError(&error)
         if let error {

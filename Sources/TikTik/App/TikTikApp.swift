@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import os
 import TikTikCore
 import TikTikStore
 
@@ -26,14 +27,18 @@ enum TikTikMain {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controller: AppController?
+    private let log = Logger(subsystem: "app.tiktik", category: "lifecycle")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        log.notice("TikTik \(version, privacy: .public) launched, pid \(ProcessInfo.processInfo.processIdentifier)")
         Fonts.registerBundledFonts()
         let sampleMode = CommandLine.arguments.contains("--sample-data")
         controller = AppController(sampleMode: sampleMode)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        log.notice("TikTik quitting normally")
         // Save the interval in progress so nothing is lost on quit.
         controller?.tracker?.shutdown()
     }

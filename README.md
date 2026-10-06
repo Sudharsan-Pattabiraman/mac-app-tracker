@@ -49,6 +49,7 @@ git pull
 | `./run.sh --sample-data` | Launches with example data and a **Design review** window to flip through every screen |
 | `./run.sh test` | Runs the core logic checks (should end with "All … checks passed") |
 | `./run.sh dump` | Prints today's recorded intervals and totals, to check tracking by hand |
+| `./run.sh diagnose` | If TikTik disappeared from the menu bar: shows its recent log and the latest crash report |
 | `./run.sh build` | Builds `build/TikTik.app` without installing it |
 | `./run.sh logs` | Streams TikTik's log messages (Ctrl-C to stop) |
 | `./run.sh uninstall` | Quits TikTik and removes it from `~/Applications` (keeps your data) |
@@ -64,6 +65,7 @@ git pull
 
 - **"Swift isn't installed"** → run `xcode-select --install`, then `./run.sh` again.
 - **Build errors** → copy the full Terminal output and send it to me.
+- **TikTik disappeared from the menu bar** → run `./run.sh diagnose` and send me the output, then `./run.sh` to start it again. Closing Terminal does **not** quit TikTik.
 - **Numbers look wrong** → run `./run.sh dump` and send me the output, together with what you were doing at the time.
 - **No website time for Chrome** → open **System Settings → Privacy & Security → Automation**, find TikTik and turn on your browser.
 - **No hourglass in the menu bar** → on a MacBook with a notch, menu bar icons can be hidden behind it. Quit some other menu bar apps, or hold ⌘ and drag icons to make room.
