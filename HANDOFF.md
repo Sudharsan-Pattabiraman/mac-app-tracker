@@ -31,6 +31,17 @@ Done in the 2026-10-04 session:
 2. Then their M1–M8 checks (PLAN §4), including `./run.sh --sample-data`, `./run.sh test`, `./run.sh dump`,
    Activity Monitor budget (SPEC 6).
 
+## Fixed after the first Mac runs
+
+- **Crash (2026-10-06, confirmed by crash report):** `BrowserMonitor.probe()` held an inout borrow of `scripts`
+  while NSAppleScript waited for Chrome. That wait spins the main run loop and drains the main queue, so the
+  minute permission check re-entered `probe()` → Swift exclusivity trap (SIGABRT). Most likely around sleep
+  (lid close), when Chrome answers slowly. Fixed: no borrow across the call, an `isProbing` guard, timer
+  installed before the first probe, and the permission callback probes only when access was just granted.
+  **Rule:** anything that runs AppleScript on the main thread must tolerate re-entrancy.
+- System dialogs (non-regular apps) are ignored; brief visits (< 30 s) don't break stretches; `0m` for nothing.
+- `./run.sh diagnose` prints the log and the newest crash report.
+
 ## Notable design facts (beyond SPEC)
 
 - **Late idle detection** emits `.reclassifyAsIdle(range)`, which `Tracker.persist` applies **after** appending pending records.

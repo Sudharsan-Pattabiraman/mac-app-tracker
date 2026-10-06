@@ -68,8 +68,8 @@ final class BrowserMonitor {
         stopProbing(clear: false)
         activeBrowser = bundleID
         lastDomain = nil
-        ensurePermission(for: bundleID, ask: true)
-        probe()
+        // Install the timer before the first probe: a probe waits on the browser, and anything that
+        // runs meanwhile (another app switch) must find this timer to cancel it.
         let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.probe()
@@ -78,6 +78,8 @@ final class BrowserMonitor {
         timer.tolerance = 1
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
+        ensurePermission(for: bundleID, ask: true)
+        probe()
     }
 
     private func stopProbing(clear: Bool) {
@@ -179,8 +181,10 @@ final class BrowserMonitor {
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     self.permissionCheckInFlight.remove(bundleID)
-                    self.setAccess(status, for: bundleID)
-                    if status == .allowed, self.activeBrowser == bundleID { self.probe() }
+                    // Probe right away only when access was just granted; otherwise the 5 s timer does it.
+                    // (This block can run while a probe is waiting on the browser; probe() guards that.)
+                    let changed = self.setAccess(status, for: bundleID)
+                    if changed, status == .allowed, self.activeBrowser == bundleID { self.probe() }
                 }
             }
         }
@@ -215,12 +219,15 @@ final class BrowserMonitor {
         }.joined(separator: " · ")
     }
 
-    private func setAccess(_ status: Access, for bundleID: String) {
+    /// Records a browser's access status. Returns true if it changed.
+    @discardableResult
+    private func setAccess(_ status: Access, for bundleID: String) -> Bool {
         // "Not running" tells us nothing new about permission; keep what we knew.
-        guard status != .notRunning, access[bundleID] != status else { return }
+        guard status != .notRunning, access[bundleID] != status else { return false }
         access[bundleID] = status
-        log.info("Automation access for \(bundleID, privacy: .public): \(String(describing: status), privacy: .public)")
+        log.notice("Automation access for \(bundleID, privacy: .public): \(String(describing: status), privacy: .public)")
         onAccessChange?()
+        return true
     }
 
     nonisolated static func automationStatus(bundleID: String, ask: Bool) -> Access {
