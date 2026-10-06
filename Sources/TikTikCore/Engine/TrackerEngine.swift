@@ -89,6 +89,14 @@ public final class TrackerEngine {
             }
 
         case .awayStarted(let reason):
+            // The display slept, the screen locked, etc. after a quiet stretch: macOS usually does
+            // that *because* nobody was using the Mac, so the quiet minutes were Idle, not Active.
+            let lastSign = max(lastInputAt, lastAssertionAt ?? .distantPast)
+            if awayReasons.isEmpty, !isIdle, open.state == .active,
+               now.timeIntervalSince(lastSign) >= config.idleBeforeAway {
+                isIdle = true
+                transition(boundary: lastSign, now: now, into: &outputs)
+            }
             awayReasons.insert(reason)
 
         case .awayEnded(let reason):

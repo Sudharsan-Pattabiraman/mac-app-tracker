@@ -17,13 +17,18 @@ public struct TrackerConfig: Equatable, Sendable {
     public var excludedBundleIDs: Set<String>
     /// A stretch/session ends on an Idle or Away gap of at least this long (SPEC 5.5).
     public var stretchGap: TimeInterval
+    /// When Away starts (display sleep, lock, screensaver, sleep) after at least this long without
+    /// input, that quiet stretch counts as Idle even if it was shorter than `idleThreshold` (SPEC 2.2).
+    public var idleBeforeAway: TimeInterval
 
     public init(idleThreshold: TimeInterval = 5 * 60,
                 excludedBundleIDs: Set<String> = [],
-                stretchGap: TimeInterval = 2 * 60) {
+                stretchGap: TimeInterval = 2 * 60,
+                idleBeforeAway: TimeInterval = 60) {
         self.idleThreshold = idleThreshold
         self.excludedBundleIDs = excludedBundleIDs
         self.stretchGap = stretchGap
+        self.idleBeforeAway = idleBeforeAway
     }
 }
 
@@ -36,6 +41,7 @@ public enum TrackerEvent: Equatable, Sendable {
     /// Periodic idle check: seconds since the last keyboard/mouse/trackpad input, and whether
     /// the frontmost app currently prevents display sleep (video, calls).
     case inputSample(secondsSinceInput: TimeInterval, displaySleepAssertion: Bool)
+    /// Send an `inputSample` just before this, so the engine knows when input last happened.
     case awayStarted(AwayReason)
     case awayEnded(AwayReason)
     case pausedChanged(Bool)

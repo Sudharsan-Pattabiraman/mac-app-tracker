@@ -63,8 +63,14 @@ final class Tracker {
         session.onChange = { [weak self] reason, started in
             guard let self else { return }
             self.log.notice("\(started ? "Away started" : "Away ended", privacy: .public): \(reason.rawValue, privacy: .public)")
-            self.send(started ? .awayStarted(reason) : .awayEnded(reason))
-            if !started { self.input.sampleNow() }
+            if started {
+                // Fresh input (and video/call) state first: a quiet stretch before Away counts as Idle.
+                self.input.sampleNow(checkAssertion: true)
+                self.send(.awayStarted(reason))
+            } else {
+                self.send(.awayEnded(reason))
+                self.input.sampleNow()
+            }
         }
         input.frontmostPID = { [weak self] in self?.frontmost.currentPID }
         input.onSample = { [weak self] seconds, assertion in
@@ -143,8 +149,20 @@ final class Tracker {
         if after.domain != before.domain || after.app != before.app {
             domainSince = after.domain == nil ? nil : after.start
         }
+        if after.state != before.state {
+            log.notice("State \(Self.name(before.state), privacy: .public) → \(Self.name(after.state), privacy: .public) from \(after.start, privacy: .public)")
+        }
         if after.state != before.state || after.app != before.app || after.domain != before.domain {
             onLiveChange?()
+        }
+    }
+
+    private static func name(_ state: ActivityState?) -> String {
+        switch state {
+        case .active?: return "active"
+        case .idle?: return "idle"
+        case .away?: return "away"
+        case nil: return "untracked"
         }
     }
 

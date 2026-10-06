@@ -62,6 +62,7 @@ At any moment the Mac is in exactly one state:
 
 - **Threshold:** 5 minutes by default, configurable in Settings from 1 to 30 minutes.
 - **Backdating:** when the threshold is crossed, the whole no-input stretch **from the last input onward** is reclassified as Idle. The 5 minutes before detection don't count as Active.
+- **Quiet time before Away:** macOS often turns the display off, locks or sleeps *before* the idle threshold (the display turns off after 2 minutes on battery by default). If Away starts after **at least 1 minute** without input (and no video or call), that quiet stretch counts as **Idle** too. Locking right after typing stays Active.
 - **Source:** `CGEventSource.secondsSinceLastEventType(.combinedSessionState, .any)` for input, and `IOPMCopyAssertionsByProcess` for display-sleep assertions held by the frontmost app's PID.
 
 ### 2.3 Polling and events (battery)

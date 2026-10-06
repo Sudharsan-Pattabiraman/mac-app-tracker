@@ -107,15 +107,16 @@ final class InputIdleMonitor {
         timer = nil
     }
 
-    /// Check now (e.g. right after waking) and reschedule.
-    func sampleNow() {
+    /// Check now (e.g. right after waking, or just before Away starts) and reschedule.
+    /// `checkAssertion` also looks for a playing video or call even if input stopped only recently.
+    func sampleNow(checkAssertion: Bool = false) {
         timer?.invalidate()
-        fire()
+        fire(checkAssertion: checkAssertion)
     }
 
-    private func fire() {
+    private func fire(checkAssertion: Bool = false) {
         let seconds = Self.secondsSinceLastInput()
-        let quietEnough = seconds >= idleThreshold - 10
+        let quietEnough = checkAssertion || seconds >= idleThreshold - 10
         let assertion = quietEnough ? (frontmostPID().map(PowerAssertionProbe.preventsDisplaySleep(appPID:)) ?? false) : false
         onSample?(seconds, assertion)
 

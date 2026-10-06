@@ -11,7 +11,7 @@
 
 ## Status
 
-All milestones are **written**. `TikTikCore` + `TikTikStore` compile and pass **197 checks** on Linux. The macOS app target
+All milestones are **written**. `TikTikCore` + `TikTikStore` compile and pass **204 checks** on Linux. The macOS app target
 (`Sources/TikTik`) has **never been compiled**; it was reviewed by hand and syntax-checked with tree-sitter.
 
 Done in the 2026-10-04 session:
@@ -40,6 +40,10 @@ Done in the 2026-10-04 session:
   installed before the first probe, and the permission callback probes only when access was just granted.
   **Rule:** anything that runs AppleScript on the main thread must tolerate re-entrancy.
 - System dialogs (non-regular apps) are ignored; brief visits (< 30 s) don't break stretches; `0m` for nothing.
+- **Idle never appeared:** macOS turns the display off (2 min on battery by default), locks or sleeps before
+  the 5 min idle threshold, so quiet time was counted Active and then Away. Now a quiet stretch of ≥ 1 min
+  before Away counts as Idle (`TrackerConfig.idleBeforeAway`); Tracker samples input (with the video/call
+  check) just before sending `.awayStarted`. State changes are logged at notice level.
 - `./run.sh diagnose` prints the log and the newest crash report.
 
 ## Notable design facts (beyond SPEC)

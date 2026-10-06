@@ -58,6 +58,7 @@ func engineChecks(_ h: inout Harness) {
 
     h.group("engine: away with overlapping reasons") { h in
         let e = TrackerEngine(config: TrackerConfig(), calendar: cal, now: at(11, 0), frontmost: xcode)
+        e.handle(.inputSample(secondsSinceInput: 0, displaySleepAssertion: false), at: at(11, 30))
         let lock = e.handle(.awayStarted(.locked), at: at(11, 30))
         h.equal(records(lock), [TrackedInterval(start: at(11, 0), end: at(11, 30), state: .active, app: xcode)])
         h.equal(e.open.state, .away)
@@ -72,6 +73,39 @@ func engineChecks(_ h: inout Harness) {
         h.equal(records(idle), [], "no input since wake: the active stretch is empty")
         h.equal(e.open.state, .idle)
         h.equal(e.open.start, at(12, 1), "idle from the wake")
+    }
+
+    h.group("engine: quiet time before Away is Idle") { h in
+        // Display turns off 2 min after the last input (default on battery), before the 5 min threshold.
+        let e = TrackerEngine(config: TrackerConfig(idleThreshold: 300), calendar: cal, now: at(9, 0), frontmost: xcode)
+        e.handle(.inputSample(secondsSinceInput: 120, displaySleepAssertion: false), at: at(9, 12))
+        let out = e.handle(.awayStarted(.displaySleep), at: at(9, 12))
+        h.equal(records(out), [
+            TrackedInterval(start: at(9, 0), end: at(9, 10), state: .active, app: xcode),
+            TrackedInterval(start: at(9, 10), end: at(9, 12), state: .idle),
+        ], "the 2 quiet minutes are idle")
+        h.equal(e.open.state, .away)
+        let back = e.handle(.awayEnded(.displaySleep), at: at(9, 30))
+        h.equal(records(back), [TrackedInterval(start: at(9, 12), end: at(9, 30), state: .away)])
+        h.equal(e.open.state, .active, "active again after wake")
+
+        // Locking right after typing: no idle.
+        let quick = TrackerEngine(config: TrackerConfig(idleThreshold: 300), calendar: cal, now: at(9, 0), frontmost: xcode)
+        quick.handle(.inputSample(secondsSinceInput: 5, displaySleepAssertion: false), at: at(9, 10))
+        h.equal(records(quick.handle(.awayStarted(.locked), at: at(9, 10))),
+                [TrackedInterval(start: at(9, 0), end: at(9, 10), state: .active, app: xcode)], "manual lock stays active")
+
+        // Watching a video, then locking: the video kept it active.
+        let video = TrackerEngine(config: TrackerConfig(idleThreshold: 300), calendar: cal, now: at(9, 0), frontmost: chrome)
+        video.handle(.inputSample(secondsSinceInput: 240, displaySleepAssertion: true), at: at(9, 10))
+        h.equal(records(video.handle(.awayStarted(.locked), at: at(9, 10))),
+                [TrackedInterval(start: at(9, 0), end: at(9, 10), state: .active, app: chrome)], "video then lock stays active")
+
+        // Already idle when the display sleeps: idle continues until Away, nothing doubled.
+        let idle = TrackerEngine(config: TrackerConfig(idleThreshold: 300), calendar: cal, now: at(9, 0), frontmost: xcode)
+        idle.handle(.inputSample(secondsSinceInput: 360, displaySleepAssertion: false), at: at(9, 10))
+        h.equal(records(idle.handle(.awayStarted(.displaySleep), at: at(9, 15))),
+                [TrackedInterval(start: at(9, 4), end: at(9, 15), state: .idle)], "idle 9:04–9:15, then away")
     }
 
     h.group("engine: midnight") { h in
